@@ -78,6 +78,20 @@ pub struct Hour(u8);
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Minute(u8);
 
+impl Parse for Minute {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lit = input.parse::<LitInt>()?;
+        let int_val = lit.base10_parse::<u8>()?;
+        if int_val > 60 {
+            return Err(Error::new(
+                lit.span(),
+                "minute must be between 0 and 60 (inclusive)",
+            ));
+        }
+        Ok(Minute(int_val))
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[repr(u8)]
 pub enum Month {
@@ -182,6 +196,15 @@ impl Parse for DayOfWeek {
 
 #[cfg(test)]
 use syn::parse2;
+
+#[test]
+fn test_parse_minutes() {
+    assert_eq!(parse2::<Minute>(quote!(59)).unwrap(), Minute(59));
+    assert_eq!(parse2::<Minute>(quote!(0)).unwrap(), Minute(0));
+    assert!(parse2::<Minute>(quote!(-1)).is_err());
+    assert!(parse2::<Minute>(quote!(61)).is_err());
+    assert!(parse2::<Minute>(quote!(259)).is_err());
+}
 
 #[test]
 fn test_parse_numbers() {
