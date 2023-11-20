@@ -1,4 +1,8 @@
-use chumsky::prelude::*;
+use quote::{quote, ToTokens};
+use syn::{
+    parse::{Parse, ParseStream, Result},
+    Error, Ident,
+};
 
 // S → TimeExpression
 // TimeExpression → AbsoluteTime | RelativeTime | TimeCalculation
@@ -118,33 +122,70 @@ pub enum TimeDirection {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Number(u64);
 
-pub enum NumberParseError {}
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub enum Timestamp {
+    RFC2822(DateTime),
+    RFC3339(DateTime),
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Timestamp(u64);
+pub enum DayOfWeekShort {
+    Sun,
+    Mon,
+    Tue,
+    Wed,
+    Thu,
+    Fri,
+    Sat,
+}
 
-impl Number {
-    pub fn parser() -> impl Parser<char, Number, Error = Simple<char>> {
-        text::int(10)
-            .map(|s: String| Number(s.parse().unwrap()))
-            .padded()
-            .then_ignore(end())
+impl AsRef<str> for DayOfWeekShort {
+    fn as_ref(&self) -> &str {
+        match self {
+            DayOfWeekShort::Sun => "Sun",
+            DayOfWeekShort::Mon => "Mon",
+            DayOfWeekShort::Tue => "Tue",
+            DayOfWeekShort::Wed => "Wed",
+            DayOfWeekShort::Thu => "Thu",
+            DayOfWeekShort::Fri => "Fri",
+            DayOfWeekShort::Sat => "Sat",
+        }
     }
 }
 
+impl Parse for DayOfWeekShort {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident = input.parse::<Ident>()?;
+        match ident.to_string().to_lowercase().as_str() {
+            "sun" => Ok(DayOfWeekShort::Sun),
+            "mon" => Ok(DayOfWeekShort::Mon),
+            "tue" => Ok(DayOfWeekShort::Tue),
+            "wed" => Ok(DayOfWeekShort::Wed),
+            "thu" => Ok(DayOfWeekShort::Thu),
+            "fri" => Ok(DayOfWeekShort::Fri),
+            "sat" => Ok(DayOfWeekShort::Sat),
+            _ => Err(Error::new(
+                ident.span(),
+                "expected one of `Sun`, `Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`",
+            )),
+        }
+    }
+}
+
+#[cfg(test)]
+use syn::parse2;
+
 #[test]
-fn test_parse_numbers() {
-    assert_eq!(
-        Number::parser().parse("248927489").unwrap(),
-        Number(248927489)
-    );
-    assert!(Number::parser().parse("-33").is_err());
-    assert_eq!(Number::parser().parse("0").unwrap(), Number(0));
-    assert_eq!(
-        Number::parser().parse("18446744073709551615").unwrap(),
-        Number(18446744073709551615)
-    );
-    assert_eq!(Number::parser().parse("  5 ").unwrap(), Number(5));
-    assert!(Number::parser().parse("+33").is_err());
-    assert!(Number::parser().parse("33+").is_err());
+fn test_parse_day_of_week_short() {
+    use DayOfWeekShort::*;
+
+    assert_eq!(parse2::<DayOfWeekShort>(quote!(Mon)).unwrap(), Mon);
+    assert_eq!(parse2::<DayOfWeekShort>(quote!(Tue)).unwrap(), Tue);
+    assert_eq!(parse2::<DayOfWeekShort>(quote!(Wed)).unwrap(), Wed);
+    assert_eq!(parse2::<DayOfWeekShort>(quote!(Thu)).unwrap(), Thu);
+    assert_eq!(parse2::<DayOfWeekShort>(quote!(Fri)).unwrap(), Fri);
+    assert_eq!(parse2::<DayOfWeekShort>(quote!(Sat)).unwrap(), Sat);
+    assert_eq!(parse2::<DayOfWeekShort>(quote!(Sun)).unwrap(), Sun);
+    assert!(parse2::<DayOfWeekShort>(quote!(Monday)).is_err());
+    assert!(parse2::<DayOfWeekShort>(quote!(Mo)).is_err());
 }
