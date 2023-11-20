@@ -8,3 +8,4 @@ description = "A DSL (Domain Specific Language) and grammar for parsing and rend
 keywords = ["DSL", "time", "parser", "date", "language"]
 
 [dependencies]
+chumsky = "0.9.3"
