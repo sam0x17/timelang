@@ -1,0 +1,10 @@
+[package]
+name = "timelang"
+version = "0.1.0"
+edition = "2021"
+authors = ["sam0x17"]
+license = "MIT"
+description = "A DSL (Domain Specific Language) and grammar for parsing and rendering human-readable date/time and duration values."
+keywords = ["DSL", "time", "parser", "date", "language"]
+
+[dependencies]
