@@ -118,5 +118,33 @@ pub enum TimeDirection {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Number(u64);
 
+pub enum NumberParseError {}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Timestamp(u64);
+
+impl Number {
+    pub fn parser() -> impl Parser<char, Number, Error = Simple<char>> {
+        text::int(10)
+            .map(|s: String| Number(s.parse().unwrap()))
+            .padded()
+            .then_ignore(end())
+    }
+}
+
+#[test]
+fn test_parse_numbers() {
+    assert_eq!(
+        Number::parser().parse("248927489").unwrap(),
+        Number(248927489)
+    );
+    assert!(Number::parser().parse("-33").is_err());
+    assert_eq!(Number::parser().parse("0").unwrap(), Number(0));
+    assert_eq!(
+        Number::parser().parse("18446744073709551615").unwrap(),
+        Number(18446744073709551615)
+    );
+    assert_eq!(Number::parser().parse("  5 ").unwrap(), Number(5));
+    assert!(Number::parser().parse("+33").is_err());
+    assert!(Number::parser().parse("33+").is_err());
+}
