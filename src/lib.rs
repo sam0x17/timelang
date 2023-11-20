@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream, Result},
@@ -75,6 +77,27 @@ pub struct Year(u16);
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Hour(u8);
 
+impl Parse for Hour {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lit = input.parse::<LitInt>()?;
+        let int_val = lit.base10_parse::<u8>()?;
+        // TODO: 12 hour?
+        if int_val > 24 {
+            return Err(Error::new(
+                lit.span(),
+                "hour must be between 0 and 24 (inclusive)",
+            ));
+        }
+        Ok(Hour(int_val))
+    }
+}
+
+impl Display for Hour {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Minute(u8);
 
@@ -89,6 +112,12 @@ impl Parse for Minute {
             ));
         }
         Ok(Minute(int_val))
+    }
+}
+
+impl Display for Minute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
     }
 }
 
@@ -144,6 +173,12 @@ impl Parse for Number {
     }
 }
 
+impl Display for Number {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum Timestamp {
     RFC2822(DateTime),
@@ -172,6 +207,12 @@ impl AsRef<str> for DayOfWeek {
             DayOfWeek::Fri => "Fri",
             DayOfWeek::Sat => "Sat",
         }
+    }
+}
+
+impl Display for DayOfWeek {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_ref())
     }
 }
 
