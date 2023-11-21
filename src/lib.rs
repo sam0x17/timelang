@@ -420,10 +420,43 @@ impl Display for TimeUnit {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeDirection {
-    After(DateTime),
-    Before(DateTime),
+    After(AbsoluteTime),
+    Before(AbsoluteTime),
     Ago,
     FromNow,
+}
+
+impl Parse for TimeDirection {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident1 = input.parse::<Ident>()?;
+        match ident1.to_string().to_lowercase().as_str() {
+            "after" => Ok(TimeDirection::After(input.parse::<AbsoluteTime>()?)),
+            "before" => Ok(TimeDirection::Before(input.parse::<AbsoluteTime>()?)),
+            "ago" => Ok(TimeDirection::Ago),
+            "from" => {
+                let ident2 = input.parse::<Ident>()?;
+                if ident2.to_string().to_lowercase().as_str() != "now" {
+                    return Err(Error::new(ident2.span(), "expected `now`"));
+                }
+                Ok(TimeDirection::FromNow)
+            }
+            _ => Err(Error::new(
+                ident1.span(),
+                "expected one of `after`, `before`, `ago`, `from`",
+            )),
+        }
+    }
+}
+
+impl Display for TimeDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TimeDirection::After(abs_time) => write!(f, "after {abs_time}"),
+            TimeDirection::Before(abs_time) => write!(f, "before {abs_time}"),
+            TimeDirection::Ago => f.write_str("ago"),
+            TimeDirection::FromNow => f.write_str("from now"),
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -687,4 +720,46 @@ fn test_parse_time_unit() {
         TimeUnit::Minutes
     );
     assert_eq!(TimeUnit::Months.as_ref(), "months");
+}
+
+#[test]
+fn test_parse_time_direction() {
+    assert_eq!(
+        parse2::<TimeDirection>(quote!(after 1/1/2024)).unwrap(),
+        TimeDirection::After(AbsoluteTime::Date(Date(
+            Month::January,
+            DayOfMonth(1),
+            Year(2024)
+        )))
+    );
+    assert_eq!(
+        parse2::<TimeDirection>(quote!(before 23/4/2025)).unwrap(),
+        TimeDirection::Before(AbsoluteTime::Date(Date(
+            Month::April,
+            DayOfMonth(23),
+            Year(2025)
+        )))
+    );
+    assert_eq!(
+        parse2::<TimeDirection>(quote!(ago)).unwrap(),
+        TimeDirection::Ago
+    );
+    assert_eq!(
+        parse2::<TimeDirection>(quote!(from now)).unwrap(),
+        TimeDirection::FromNow
+    );
+    assert_eq!(
+        parse2::<TimeDirection>(quote!(before 23/4/2025))
+            .unwrap()
+            .to_string(),
+        "before 23/4/2025"
+    );
+    assert_eq!(
+        parse2::<TimeDirection>(quote!(after 1/1/2024))
+            .unwrap()
+            .to_string(),
+        "after 1/1/2024"
+    );
+    assert_eq!(TimeDirection::Ago.to_string(), "ago");
+    assert_eq!(TimeDirection::FromNow.to_string(), "from now");
 }
