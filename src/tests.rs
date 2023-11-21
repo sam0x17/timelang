@@ -282,3 +282,18 @@ fn test_parse_relative_time() {
         "7 days before 14/3/2026 5:04 PM"
     );
 }
+
+#[test]
+fn test_parse_duration() {
+    assert_eq!(
+        parse2::<Duration>(quote!(6 years, 5 months, 4 weeks, 3 days, 2 hours, 1 minute)).unwrap(),
+        Duration {
+            years: 6.into(),
+            months: 5.into(),
+            weeks: 4.into(),
+            days: 3.into(),
+            hours: 2.into(),
+            minutes: 1.into(),
+        }
+    )
+}

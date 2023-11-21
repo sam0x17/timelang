@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    ops::{Add, Div, Mul, Sub},
+};
 use syn::{
     parse::{Parse, ParseStream, Result},
     Error, Ident, LitInt, Token,
@@ -37,7 +40,125 @@ pub struct Duration {
     pub minutes: Number,
     pub hours: Number,
     pub days: Number,
+    pub weeks: Number,
+    pub months: Number,
     pub years: Number,
+}
+
+impl Parse for Duration {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut minutes: Option<Number> = None;
+        let mut hours: Option<Number> = None;
+        let mut days: Option<Number> = None;
+        let mut weeks: Option<Number> = None;
+        let mut months: Option<Number> = None;
+        let mut years: Option<Number> = None;
+        while input.peek(LitInt) {
+            let num = input.parse::<Number>()?;
+            let unit = input.parse::<TimeUnit>()?;
+            match unit {
+                TimeUnit::Minutes => minutes = Some(minutes.unwrap_or(Number(0)) + num),
+                TimeUnit::Hours => hours = Some(hours.unwrap_or(Number(0)) + num),
+                TimeUnit::Days => days = Some(days.unwrap_or(Number(0)) + num),
+                TimeUnit::Weeks => weeks = Some(weeks.unwrap_or(Number(0)) + num),
+                TimeUnit::Months => months = Some(months.unwrap_or(Number(0)) + num),
+                TimeUnit::Years => years = Some(years.unwrap_or(Number(0)) + num),
+            }
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            } else {
+                break;
+            }
+        }
+        if minutes.is_none() && hours.is_none() && days.is_none() && years.is_none() {
+            return Err(Error::new(
+                input.span(),
+                "expected [number] followed by one of `minutes`, `hours`, `days`, `years`",
+            ));
+        }
+        Ok(Duration {
+            minutes: minutes.unwrap_or(Number(0)),
+            hours: hours.unwrap_or(Number(0)),
+            days: days.unwrap_or(Number(0)),
+            weeks: weeks.unwrap_or(Number(0)),
+            months: months.unwrap_or(Number(0)),
+            years: years.unwrap_or(Number(0)),
+        })
+    }
+}
+
+impl Display for Duration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut before = false;
+        if self.years > 0 {
+            before = true;
+        }
+        if self.years == 1 {
+            write!(f, "1 year")?;
+        } else if self.years > 1 {
+            write!(f, "{} years", self.years)?;
+        }
+        if self.months > 0 {
+            if before {
+                write!(f, ", ")?;
+            }
+            before = true;
+        }
+        if self.months == 1 {
+            write!(f, "1 month")?;
+        } else if self.months > 1 {
+            write!(f, "{} months", self.months)?;
+        }
+        if self.weeks > 0 {
+            if before {
+                write!(f, ", ")?;
+            }
+            before = true;
+        }
+        if self.weeks == 1 {
+            write!(f, "1 week")?;
+        } else if self.weeks > 1 {
+            write!(f, "{} weeks", self.weeks)?;
+        }
+        if self.days > 0 {
+            if before {
+                write!(f, ", ")?;
+            }
+            before = true;
+        }
+        if self.days == 1 {
+            write!(f, "1 day")?;
+        } else if self.days > 1 {
+            write!(f, "{} days", self.days)?;
+        }
+        if self.hours > 0 {
+            if before {
+                write!(f, ", ")?;
+            }
+            before = true;
+        }
+        if self.hours == 1 {
+            write!(f, "1 hour")?;
+        } else if self.hours > 1 {
+            write!(f, "{} hours", self.hours)?;
+        }
+        if self.days == 1 {
+            write!(f, "1 day")?;
+        } else if self.days > 1 {
+            write!(f, "{} days", self.days)?;
+        }
+        if self.minutes > 0 {
+            if before {
+                write!(f, ", ")?;
+            }
+        }
+        if self.minutes == 1 {
+            write!(f, "1 minute")?;
+        } else if self.minutes > 1 {
+            write!(f, "{} minutes", self.minutes)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -480,6 +601,62 @@ impl Display for TimeDirection {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Number(pub u64);
 
+impl From<u64> for Number {
+    fn from(value: u64) -> Self {
+        Number(value)
+    }
+}
+
+impl From<Number> for u64 {
+    fn from(value: Number) -> Self {
+        value.0
+    }
+}
+
+impl Add for Number {
+    type Output = Number;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Number(self.0 + rhs.0)
+    }
+}
+
+impl Sub for Number {
+    type Output = Number;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Number(self.0 - rhs.0)
+    }
+}
+
+impl Mul for Number {
+    type Output = Number;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Number(self.0 * rhs.0)
+    }
+}
+
+impl Div for Number {
+    type Output = Number;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        Number(self.0 / rhs.0)
+    }
+}
+
+impl PartialEq<u64> for Number {
+    fn eq(&self, other: &u64) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialOrd<u64> for Number {
+    fn partial_cmp(&self, other: &u64) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
 impl Parse for Number {
     fn parse(input: ParseStream) -> Result<Self> {
         let lit = input.parse::<LitInt>()?;
@@ -553,5 +730,7 @@ macro_rules! assert_impl_all {
 
 // #[test]
 // fn test_traits() {
-//     assert_impl_all!(DayOfWeek, TimeDirection, TimeUnit, AmPm, Month, Hour, AbsoluteTime, RelativeTime, PointInTime, TimeExpression : Copy + Clone + PartialEq + Eq + PartialOrd + Ord + core::fmt::Debug + core::fmt::Display + Parse + core::hash::Hash);
+//     assert_impl_all!(DayOfWeek, TimeDirection, TimeUnit, AmPm, Month, Hour, AbsoluteTime,
+//     Duration, RelativeTime, PointInTime, TimeExpression : Copy + Clone + PartialEq + Eq +
+//     PartialOrd + Ord + core::fmt::Debug + core::fmt::Display + Parse + core::hash::Hash);
 // }
