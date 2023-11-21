@@ -80,6 +80,21 @@ pub struct RelativeTime {
     pub dir: TimeDirection,
 }
 
+impl Parse for RelativeTime {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let num = input.parse::<Number>()?;
+        let unit = input.parse::<TimeUnit>()?;
+        let dir = input.parse::<TimeDirection>()?;
+        Ok(RelativeTime { num, unit, dir })
+    }
+}
+
+impl Display for RelativeTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {} {}", self.num, self.unit, self.dir)
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Date(pub Month, pub DayOfMonth, pub Year);
 
@@ -528,3 +543,15 @@ impl Parse for DayOfWeek {
         }
     }
 }
+
+macro_rules! assert_impl_all {
+    ($($typ:ty),* : $($tt:tt)*) => {{
+        const fn _assert_impl<T>() where T: $($tt)*, {}
+        $(_assert_impl::<$typ>();)*
+    }};
+}
+
+// #[test]
+// fn test_traits() {
+//     assert_impl_all!(DayOfWeek, TimeDirection, TimeUnit, AmPm, Month, Hour, AbsoluteTime, RelativeTime, PointInTime, TimeExpression : Copy + Clone + PartialEq + Eq + PartialOrd + Ord + core::fmt::Debug + core::fmt::Display + Parse + core::hash::Hash);
+// }

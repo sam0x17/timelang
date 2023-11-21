@@ -233,3 +233,52 @@ fn test_parse_time_direction() {
     assert_eq!(TimeDirection::Ago.to_string(), "ago");
     assert_eq!(TimeDirection::FromNow.to_string(), "from now");
 }
+
+#[test]
+fn test_parse_relative_time() {
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(5 days from now)).unwrap(),
+        RelativeTime {
+            num: Number(5),
+            unit: TimeUnit::Days,
+            dir: TimeDirection::FromNow
+        }
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(24787 years ago)).unwrap(),
+        RelativeTime {
+            num: Number(24787),
+            unit: TimeUnit::Years,
+            dir: TimeDirection::Ago
+        }
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(3 weeks after 18/4/2024)).unwrap(),
+        RelativeTime {
+            num: Number(3),
+            unit: TimeUnit::Weeks,
+            dir: TimeDirection::After(AbsoluteTime::Date(Date(
+                Month::April,
+                DayOfMonth(18),
+                Year(2024)
+            )))
+        }
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(7 days before 14/3/2026 5:04 PM)).unwrap(),
+        RelativeTime {
+            num: Number(7),
+            unit: TimeUnit::Days,
+            dir: TimeDirection::Before(AbsoluteTime::DateTime(DateTime(
+                Date(Month::March, DayOfMonth(14), Year(2026)),
+                Time(Hour::Hour12(5, AmPm::PM), Minute(4))
+            )))
+        }
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(7 days before 14/3/2026 5:04 PM))
+            .unwrap()
+            .to_string(),
+        "7 days before 14/3/2026 5:04 PM"
+    );
+}
