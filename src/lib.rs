@@ -71,6 +71,7 @@ impl Display for AbsoluteTime {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct RelativeTime {
+    // 5 days after 22/5/2024
     pub num: Number,
     pub unit: TimeUnit,
     pub dir: TimeDirection,
@@ -377,6 +378,46 @@ pub enum TimeUnit {
     Years,
 }
 
+impl Parse for TimeUnit {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident = input.parse::<Ident>()?;
+        use TimeUnit::*;
+        Ok(match ident.to_string().to_lowercase().as_str() {
+            "mins" | "minutes" | "minute" | "min" => Minutes,
+            "hours" | "hrs" | "hour" | "hr" => Hours,
+            "days" | "day" => Days,
+            "weeks" | "week" => Weeks,
+            "months" | "month" => Months,
+            "years" | "yr" | "year" => Years,
+            _ => {
+                return Err(Error::new(
+                    ident.span(),
+                    "expected one of `minutes`, `hours`, `days`, `weeks`, `months`, and `years`",
+                ))
+            }
+        })
+    }
+}
+
+impl AsRef<str> for TimeUnit {
+    fn as_ref(&self) -> &str {
+        match self {
+            TimeUnit::Minutes => "minutes",
+            TimeUnit::Hours => "hours",
+            TimeUnit::Days => "days",
+            TimeUnit::Weeks => "minutes",
+            TimeUnit::Months => "months",
+            TimeUnit::Years => "years",
+        }
+    }
+}
+
+impl Display for TimeUnit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_ref())
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeDirection {
     After(DateTime),
@@ -637,4 +678,13 @@ fn test_parse_absolute_time() {
             .to_string(),
         "22/4/1991"
     );
+}
+
+#[test]
+fn test_parse_time_unit() {
+    assert_eq!(
+        parse2::<TimeUnit>(quote!(Minutes)).unwrap(),
+        TimeUnit::Minutes
+    );
+    assert_eq!(TimeUnit::Months.as_ref(), "months");
 }
