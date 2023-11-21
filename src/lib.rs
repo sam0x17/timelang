@@ -77,7 +77,21 @@ impl Display for Date {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct DateTime(pub Date, pub Time);
+pub struct DateTime(pub Date, pub Time); // 22/4/1991 5:25 PM
+
+impl Parse for DateTime {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let date = input.parse::<Date>()?;
+        let time = input.parse::<Time>()?;
+        Ok(DateTime(date, time))
+    }
+}
+
+impl Display for DateTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{} {}", self.0, self.1))
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Time(pub Hour, pub Minute);
@@ -109,10 +123,11 @@ impl Parse for Time {
 
 impl Display for Time {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Time(Hour::Hour12(hour, am_pm), minute) = self {
-            f.write_fmt(format_args!("{}:{:02} {}", hour, minute, am_pm))
-        } else {
-            f.write_fmt(format_args!("{}:{:02}", self.0, self.1))
+        match self {
+            Time(Hour::Hour12(hour, am_pm), minute) => {
+                write!(f, "{}:{:02} {}", hour, minute, am_pm)
+            }
+            Time(Hour::Hour24(hour), minute) => write!(f, "{}:{:02}", hour, minute),
         }
     }
 }
@@ -214,7 +229,7 @@ impl Parse for Minute {
 
 impl Display for Minute {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.0))
+        f.write_fmt(format_args!("{:02}", self.0))
     }
 }
 
@@ -542,5 +557,35 @@ fn test_parse_time() {
     assert_eq!(
         parse2::<Time>(quote!(23:44)).unwrap().to_string().as_str(),
         "23:44"
+    );
+    assert_eq!(
+        parse2::<Time>(quote!(23:01)).unwrap().to_string().as_str(),
+        "23:01"
+    );
+}
+
+#[test]
+fn test_parse_date_time() {
+    use AmPm::*;
+
+    assert_eq!(
+        parse2::<DateTime>(quote!(5/6/2024 6:23 AM)).unwrap(),
+        DateTime(
+            Date(Month::June, DayOfMonth(5), Year(2024)),
+            Time(Hour::Hour12(6, AM), Minute(23))
+        )
+    );
+    assert_eq!(
+        parse2::<DateTime>(quote!(5/6/2024 23:01)).unwrap(),
+        DateTime(
+            Date(Month::June, DayOfMonth(5), Year(2024)),
+            Time(Hour::Hour24(23), Minute(01))
+        )
+    );
+    assert_eq!(
+        parse2::<DateTime>(quote!(1/1/2001 7:01 PM))
+            .unwrap()
+            .to_string(),
+        "1/1/2001 7:01 PM"
     );
 }
