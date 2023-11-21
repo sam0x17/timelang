@@ -123,26 +123,40 @@ impl Display for Year {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Hour(u8);
+pub enum Hour {
+    Hour12(u8, AmPm),
+    Hour24(u8),
+}
 
 impl Parse for Hour {
     fn parse(input: ParseStream) -> Result<Self> {
         let lit = input.parse::<LitInt>()?;
         let int_val = lit.base10_parse::<u8>()?;
-        // TODO: 12 hour?
+        if let Ok(am_pm) = input.parse::<AmPm>() {
+            if int_val > 12 || int_val == 0 {
+                return Err(Error::new(
+                    lit.span(),
+                    "hour must be between 1 and 12 (inclusive)",
+                ));
+            }
+            return Ok(Hour::Hour12(int_val, am_pm));
+        }
         if int_val > 24 {
             return Err(Error::new(
                 lit.span(),
                 "hour must be between 0 and 24 (inclusive)",
             ));
         }
-        Ok(Hour(int_val))
+        Ok(Hour::Hour24(int_val))
     }
 }
 
 impl Display for Hour {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.0))
+        match self {
+            Hour::Hour12(hour, am_pm) => f.write_fmt(format_args!("{hour} {am_pm}",)),
+            Hour::Hour24(hour) => f.write_fmt(format_args!("{hour}")),
+        }
     }
 }
 
@@ -381,6 +395,22 @@ fn test_parse_minutes() {
     assert!(parse2::<Minute>(quote!(-1)).is_err());
     assert!(parse2::<Minute>(quote!(61)).is_err());
     assert!(parse2::<Minute>(quote!(259)).is_err());
+}
+
+#[test]
+fn test_parse_hours() {
+    use AmPm::*;
+
+    assert_eq!(parse2::<Hour>(quote!(23)).unwrap(), Hour::Hour24(23));
+    assert_eq!(parse2::<Hour>(quote!(0)).unwrap(), Hour::Hour24(0));
+    assert!(parse2::<Hour>(quote!(25)).is_err());
+    assert!(parse2::<Hour>(quote!(259)).is_err());
+
+    assert_eq!(parse2::<Hour>(quote!(11 AM)).unwrap(), Hour::Hour12(11, AM));
+    assert_eq!(parse2::<Hour>(quote!(1 PM)).unwrap(), Hour::Hour12(1, PM));
+    assert!(parse2::<Hour>(quote!(0 AM)).is_err());
+    assert!(parse2::<Hour>(quote!(21 PM)).is_err());
+    assert!(parse2::<Hour>(quote!(26 AM)).is_err());
 }
 
 #[test]
