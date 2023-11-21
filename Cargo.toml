@@ -8,6 +8,7 @@ description = "A DSL (Domain Specific Language) and grammar for parsing and rend
 keywords = ["DSL", "time", "parser", "date", "language"]
 
 [dependencies]
-chrono = "0.4.31"
-quote = "1.0.33"
 syn = "2.0.39"
+
+[dev-dependencies]
+quote = "1.0.33"

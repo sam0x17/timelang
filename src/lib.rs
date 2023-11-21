@@ -1,6 +1,4 @@
 use std::fmt::Display;
-
-use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream, Result},
     Error, Ident, LitInt, Token,
@@ -49,7 +47,6 @@ pub enum PointInTime {
 pub enum AbsoluteTime {
     Date(Date),
     DateTime(DateTime),
-    ISO(Timestamp),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -62,6 +59,23 @@ pub struct RelativeTime {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Date(Month, DayOfMonth, Year);
 
+impl Parse for Date {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let day = input.parse::<DayOfMonth>()?;
+        input.parse::<Token![/]>()?;
+        let month = input.parse::<Month>()?;
+        input.parse::<Token![/]>()?;
+        let year = input.parse::<Year>()?;
+        Ok(Date(month, day, year))
+    }
+}
+
+impl Display for Date {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}/{}/{}", self.1, self.0, self.2))
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Time(Hour, Minute, Option<AmPm>);
 
@@ -71,8 +85,42 @@ pub struct DateTime(Date, Time);
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct DayOfMonth(u8);
 
+impl Parse for DayOfMonth {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lit = input.parse::<LitInt>()?;
+        let int_val = lit.base10_parse::<u8>()?;
+        if int_val > 31 || int_val == 0 {
+            return Err(Error::new(
+                lit.span(),
+                "day must be between 1 and 31 (inclusive)",
+            ));
+        }
+        Ok(DayOfMonth(int_val))
+    }
+}
+
+impl Display for DayOfMonth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Year(u16);
+
+impl Parse for Year {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lit = input.parse::<LitInt>()?;
+        let int_val = lit.base10_parse::<u16>()?;
+        Ok(Year(int_val))
+    }
+}
+
+impl Display for Year {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Hour(u8);
@@ -138,10 +186,101 @@ pub enum Month {
     December,
 }
 
+impl Parse for Month {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lit = input.parse::<LitInt>()?;
+        let int_val = lit.base10_parse::<u8>()?;
+        if int_val > 12 || int_val == 0 {
+            return Err(Error::new(
+                lit.span(),
+                "month must be between 1 and 12 (inclusive)",
+            ));
+        }
+        use Month::*;
+        Ok(match int_val {
+            1 => January,
+            2 => February,
+            3 => March,
+            4 => April,
+            5 => May,
+            6 => June,
+            7 => July,
+            8 => August,
+            9 => September,
+            10 => October,
+            11 => November,
+            12 => December,
+            _ => unreachable!(),
+        })
+    }
+}
+
+impl From<Month> for u8 {
+    fn from(value: Month) -> Self {
+        use Month::*;
+        match value {
+            January => 1,
+            February => 2,
+            March => 3,
+            April => 4,
+            May => 5,
+            June => 6,
+            July => 7,
+            August => 8,
+            September => 9,
+            October => 10,
+            November => 11,
+            December => 12,
+        }
+    }
+}
+
+impl From<&Month> for u8 {
+    fn from(value: &Month) -> Self {
+        (*value).into()
+    }
+}
+
+impl Display for Month {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let as_u8: u8 = self.into();
+        f.write_fmt(format_args!("{}", as_u8))
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum AmPm {
-    Am,
-    Pm,
+    AM,
+    PM,
+}
+
+impl Parse for AmPm {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident = input.parse::<Ident>()?;
+        match ident.to_string().to_lowercase().as_str() {
+            "am" => Ok(AmPm::AM),
+            "pm" => Ok(AmPm::PM),
+            _ => Err(Error::new(ident.span(), "expected `AM` or `PM`")),
+        }
+    }
+}
+
+impl Display for AmPm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AmPm::AM => f.write_str("AM"),
+            AmPm::PM => f.write_str("PM"),
+        }
+    }
+}
+
+impl AsRef<str> for AmPm {
+    fn as_ref(&self) -> &str {
+        match self {
+            AmPm::AM => "AM",
+            AmPm::PM => "PM",
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -177,12 +316,6 @@ impl Display for Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}", self.0))
     }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub enum Timestamp {
-    RFC2822(DateTime),
-    RFC3339(DateTime),
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -238,6 +371,9 @@ impl Parse for DayOfWeek {
 #[cfg(test)]
 use syn::parse2;
 
+#[cfg(test)]
+use quote::quote;
+
 #[test]
 fn test_parse_minutes() {
     assert_eq!(parse2::<Minute>(quote!(59)).unwrap(), Minute(59));
@@ -268,4 +404,45 @@ fn test_parse_day_of_week_short() {
     assert_eq!(parse2::<DayOfWeek>(quote!(sun)).unwrap(), Sun);
     assert_eq!(parse2::<DayOfWeek>(quote!(Monday)).unwrap(), Mon);
     assert!(parse2::<DayOfWeek>(quote!(Mo)).is_err());
+}
+
+#[test]
+fn test_parse_month() {
+    use Month::*;
+
+    assert_eq!(parse2::<Month>(quote!(6)).unwrap(), June);
+    assert!(parse2::<Month>(quote!(0)).is_err());
+    assert!(parse2::<Month>(quote!(13)).is_err());
+    assert_eq!(
+        format!("{}", parse2::<Month>(quote!(8)).unwrap()).as_str(),
+        "8"
+    );
+}
+
+#[test]
+fn test_parse_am_pm() {
+    use AmPm::*;
+
+    assert_eq!(parse2::<AmPm>(quote!(Am)).unwrap(), AM);
+    assert_eq!(parse2::<AmPm>(quote!(AM)).unwrap(), AM);
+    assert_eq!(parse2::<AmPm>(quote!(PM)).unwrap(), PM);
+    assert!(parse2::<AmPm>(quote!(Aam)).is_err());
+    assert_eq!(format!("{}", AM).as_str(), "AM");
+    assert_eq!(PM.as_ref(), "PM");
+}
+
+#[test]
+fn test_parse_date() {
+    assert_eq!(
+        parse2::<Date>(quote!(22 / 4 / 1991)).unwrap(),
+        Date(Month::April, DayOfMonth(22), Year(1991))
+    );
+    assert!(parse2::<Date>(quote!(0 / 3 / 1993)).is_err());
+    assert!(parse2::<Date>(quote!(11 / 4)).is_err());
+    assert_eq!(
+        Date(Month::July, DayOfMonth(5), Year(1991))
+            .to_string()
+            .as_str(),
+        "5/7/1991"
+    );
 }
