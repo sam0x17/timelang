@@ -57,7 +57,7 @@ pub struct RelativeTime {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Date(Month, DayOfMonth, Year);
+pub struct Date(pub Month, pub DayOfMonth, pub Year);
 
 impl Parse for Date {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -77,13 +77,48 @@ impl Display for Date {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Time(Hour, Minute, Option<AmPm>);
+pub struct DateTime(pub Date, pub Time);
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct DateTime(Date, Time);
+pub struct Time(pub Hour, pub Minute);
+
+impl Parse for Time {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let hour_lit = input.parse::<LitInt>()?;
+        let hour_val = hour_lit.base10_parse::<u8>()?;
+        input.parse::<Token![:]>()?;
+        let min = input.parse::<Minute>()?;
+        if let Ok(am_pm) = input.parse::<AmPm>() {
+            if hour_val > 12 || hour_val == 0 {
+                return Err(Error::new(
+                    hour_lit.span(),
+                    "hour must be between 1 and 12 (inclusive)",
+                ));
+            }
+            return Ok(Time(Hour::Hour12(hour_val, am_pm), min));
+        }
+        if hour_val > 24 {
+            return Err(Error::new(
+                hour_lit.span(),
+                "hour must be between 0 and 24 (inclusive)",
+            ));
+        }
+        Ok(Time(Hour::Hour24(hour_val), min))
+    }
+}
+
+impl Display for Time {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Time(Hour::Hour12(hour, am_pm), minute) = self {
+            f.write_fmt(format_args!("{}:{:02} {}", hour, minute, am_pm))
+        } else {
+            f.write_fmt(format_args!("{}:{:02}", self.0, self.1))
+        }
+    }
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct DayOfMonth(u8);
+pub struct DayOfMonth(pub u8);
 
 impl Parse for DayOfMonth {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -106,7 +141,7 @@ impl Display for DayOfMonth {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Year(u16);
+pub struct Year(pub u16);
 
 impl Parse for Year {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -161,7 +196,7 @@ impl Display for Hour {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Minute(u8);
+pub struct Minute(pub u8);
 
 impl Parse for Minute {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -316,7 +351,7 @@ pub enum TimeDirection {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Number(u64);
+pub struct Number(pub u64);
 
 impl Parse for Number {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -474,5 +509,38 @@ fn test_parse_date() {
             .to_string()
             .as_str(),
         "5/7/1991"
+    );
+}
+
+#[test]
+fn test_parse_time() {
+    use AmPm::*;
+    assert_eq!(
+        parse2::<Time>(quote!(4:34 PM)).unwrap(),
+        Time(Hour::Hour12(4, PM), Minute(34))
+    );
+    assert_eq!(
+        parse2::<Time>(quote!(12:00 AM)).unwrap(),
+        Time(Hour::Hour12(12, AM), Minute(00))
+    );
+    assert_eq!(
+        parse2::<Time>(quote!(1:13 PM)).unwrap(),
+        Time(Hour::Hour12(1, PM), Minute(13))
+    );
+    assert_eq!(
+        parse2::<Time>(quote!(00:00)).unwrap(),
+        Time(Hour::Hour24(0), Minute(00))
+    );
+    assert!(parse2::<Time>(quote!(13:24 AM)).is_err());
+    assert_eq!(
+        parse2::<Time>(quote!(4:34 PM))
+            .unwrap()
+            .to_string()
+            .as_str(),
+        "4:34 PM"
+    );
+    assert_eq!(
+        parse2::<Time>(quote!(23:44)).unwrap().to_string().as_str(),
+        "23:44"
     );
 }
