@@ -49,6 +49,26 @@ pub enum AbsoluteTime {
     DateTime(DateTime),
 }
 
+impl Parse for AbsoluteTime {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let date = input.parse::<Date>()?;
+        if input.peek(LitInt) && input.peek2(Token![:]) && input.peek3(LitInt) {
+            let time = input.parse::<Time>()?;
+            return Ok(AbsoluteTime::DateTime(DateTime(date, time)));
+        }
+        Ok(AbsoluteTime::Date(date))
+    }
+}
+
+impl Display for AbsoluteTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AbsoluteTime::Date(date) => write!(f, "{}", date),
+            AbsoluteTime::DateTime(date_time) => write!(f, "{}", date_time),
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct RelativeTime {
     pub num: Number,
@@ -587,5 +607,34 @@ fn test_parse_date_time() {
             .unwrap()
             .to_string(),
         "1/1/2001 7:01 PM"
+    );
+}
+
+#[test]
+fn test_parse_absolute_time() {
+    use AmPm::*;
+
+    assert_eq!(
+        parse2::<AbsoluteTime>(quote!(22 / 4 / 1991)).unwrap(),
+        AbsoluteTime::Date(Date(Month::April, DayOfMonth(22), Year(1991)))
+    );
+    assert_eq!(
+        parse2::<AbsoluteTime>(quote!(22/4/1991 5:01 PM)).unwrap(),
+        AbsoluteTime::DateTime(DateTime(
+            Date(Month::April, DayOfMonth(22), Year(1991)),
+            Time(Hour::Hour12(5, PM), Minute(01))
+        ))
+    );
+    assert_eq!(
+        parse2::<AbsoluteTime>(quote!(22/4/1991 5:01 PM))
+            .unwrap()
+            .to_string(),
+        "22/4/1991 5:01 PM"
+    );
+    assert_eq!(
+        parse2::<AbsoluteTime>(quote!(22 / 4 / 1991))
+            .unwrap()
+            .to_string(),
+        "22/4/1991"
     );
 }
