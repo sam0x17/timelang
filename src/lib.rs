@@ -29,6 +29,7 @@
 use std::{
     fmt::Display,
     ops::{Add, Div, Mul, Sub},
+    str::FromStr,
 };
 use syn::{
     parse::{Parse, ParseStream, Result},
@@ -43,6 +44,33 @@ mod tests;
 /// Usually you would want a more specific type like [`PointInTime`], [`TimeRange`], [`Time`],
 /// [`DateTime`], etc., however this node type is included so we can technically consider
 /// Timelang to be a distinct language.
+///
+/// ## Examples
+///
+/// ### Specific Date
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "20/4/2021".parse::<TimeExpression>().unwrap(),
+///     TimeExpression::Specific(PointInTime::Absolute(AbsoluteTime::Date(Date(
+///         Month::April,
+///         DayOfMonth(20),
+///         Year(2021)
+///     ))))
+/// );
+/// ```
+///
+/// ### Specific DateTime
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "15/6/2022 at 14:00".parse::<AbsoluteTime>().unwrap(),
+///     AbsoluteTime::DateTime(DateTime(
+///         Date(Month::June, DayOfMonth(15), Year(2022)),
+///         Time(Hour::Hour24(14), Minute(0))
+///     ))
+/// );
+/// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeExpression {
     Specific(PointInTime), // (LitInt, Ident) or (LitInt, Token![/])
@@ -269,12 +297,14 @@ pub enum AbsoluteTime {
 
 impl Parse for AbsoluteTime {
     fn parse(input: ParseStream) -> Result<Self> {
-        let date = input.parse::<Date>()?;
-        if input.peek(LitInt) && input.peek2(Token![:]) && input.peek3(LitInt) {
-            let time = input.parse::<Time>()?;
-            return Ok(AbsoluteTime::DateTime(DateTime(date, time)));
+        let fork = input.fork();
+        fork.parse::<Date>()?;
+        if (fork.peek(LitInt) && fork.peek2(Token![:]) && fork.peek3(LitInt))
+            || (fork.peek(Ident) && fork.peek2(LitInt) && fork.peek3(Token![:]))
+        {
+            return Ok(AbsoluteTime::DateTime(input.parse()?));
         }
-        Ok(AbsoluteTime::Date(date))
+        Ok(AbsoluteTime::Date(input.parse()?))
     }
 }
 
@@ -819,6 +849,34 @@ impl Parse for DayOfWeek {
     }
 }
 
+macro_rules! impl_parse_str {
+    ($ident:ident) => {
+        impl FromStr for $ident {
+            type Err = syn::Error;
+
+            fn from_str(s: &str) -> std::prelude::v1::Result<Self, Self::Err> {
+                syn::parse_str(s)
+            }
+        }
+    };
+}
+
+impl_parse_str!(TimeExpression);
+impl_parse_str!(TimeDirection);
+impl_parse_str!(TimeUnit);
+impl_parse_str!(AmPm);
+impl_parse_str!(DayOfMonth);
+impl_parse_str!(Minute);
+impl_parse_str!(DayOfWeek);
+impl_parse_str!(Month);
+impl_parse_str!(Hour);
+impl_parse_str!(AbsoluteTime);
+impl_parse_str!(Duration);
+impl_parse_str!(RelativeTime);
+impl_parse_str!(PointInTime);
+impl_parse_str!(Time);
+impl_parse_str!(DateTime);
+
 #[cfg(test)]
 macro_rules! assert_impl_all {
     ($($typ:ty),* : $($tt:tt)*) => {{
@@ -830,16 +888,20 @@ macro_rules! assert_impl_all {
 #[test]
 fn test_traits() {
     assert_impl_all!(
-        DayOfWeek,
         TimeDirection,
         TimeUnit,
         AmPm,
+        DayOfMonth,
+        Minute,
+        DayOfWeek,
         Month,
         Hour,
         AbsoluteTime,
         Duration,
         RelativeTime,
         PointInTime,
+        Time,
+        DateTime,
         TimeExpression : Copy
         + Clone
         + PartialEq
@@ -850,5 +912,6 @@ fn test_traits() {
         + core::fmt::Display
         + Parse
         + core::hash::Hash
+        + FromStr
     );
 }
