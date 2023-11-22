@@ -1,3 +1,31 @@
+//! Timelang is a simple DSL (Domain Specific Language) for representing human-readable
+//! time-related expressions including specific date/times, relative expressions like "3 hours
+//! from now", time ranges, and durations.
+//!
+//! ## Context Free Grammar
+//! Here is a rough CFG (Context Free Grammar) for timelang:
+//!
+//! ```cfg
+//! S → TimeExpression
+//! TimeExpression → PointInTime | TimeRange | Duration
+//! PointInTime → AbsoluteTime | RelativeTime
+//! TimeRange → 'from' PointInTime 'to' PointInTime
+//! Duration → (Number TimeUnit)+
+//! AbsoluteTime → Date | DateTime
+//! RelativeTime → Duration 'ago' | Duration 'from now' | Duration 'before' AbsoluteTime | Duration 'after' AbsoluteTime
+//! Date → DayOfMonth '/' Month '/' Year
+//! DateTime → Date Time
+//! Time → Hour ':' Minute AmPm?
+//! Hour → Number
+//! Minute → Number
+//! Month → Number
+//! DayOfMonth → Number
+//! Year → Number
+//! AmPm → 'AM' | 'PM'
+//! TimeUnit → 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
+//! Number → [Any positive integer value]
+//! ```
+
 use std::{
     fmt::Display,
     ops::{Add, Div, Mul, Sub},
@@ -6,24 +34,6 @@ use syn::{
     parse::{Parse, ParseStream, Result},
     Error, Ident, LitInt, Token,
 };
-
-// S → TimeExpression
-// TimeExpression → AbsoluteTime | RelativeTime | TimeCalculation
-// AbsoluteTime → 'Date' | 'DateTime' | ISOFormat
-// RelativeTime → Number TimeUnit TimeDirection
-// TimeUnit → 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
-// TimeDirection → 'ago' | 'from now'
-// TimeCalculation → Number TimeUnit 'before' TimeExpression | Number TimeUnit 'after' TimeExpression
-// Number → [Any integer value]
-// Date → Month Day, Year
-// DateTime → Month Day, Year 'at' Time
-// Month → 'January' | 'February' | ... | 'December'
-// Day → [1-31]
-// Year → [Any year]
-// Time → Hour ':' Minute [AM/PM]
-// Hour → [1-12]
-// Minute → [00-59]
-// ISOFormat → 'ISO Date' | 'ISO DateTime' | 'ISO Week Date' | 'ISO Ordinal Date'
 
 #[cfg(test)]
 mod tests;
