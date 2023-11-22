@@ -10,7 +10,7 @@
 //! TimeExpression → PointInTime | TimeRange | Duration
 //! PointInTime → AbsoluteTime | RelativeTime
 //! TimeRange → 'from' PointInTime 'to' PointInTime
-//! Duration → Number TimeUnit ((',' | 'and')? Number TimeUnit)*
+//! Duration → Number TimeUnit ((','? 'and')? Number TimeUnit)*
 //! AbsoluteTime → Date | DateTime
 //! RelativeTime → Duration 'ago' | Duration 'from now' | Duration 'before' AbsoluteTime | Duration 'after' AbsoluteTime
 //! Date → DayOfMonth '/' Month '/' Year
@@ -149,7 +149,7 @@ mod tests;
 /// ```
 /// use timelang::*;
 /// assert_eq!(
-///     "5 days, 10 hours and 35 minutes from now"
+///     "5 days, 10 hours, and 35 minutes from now"
 ///         .parse::<TimeExpression>()
 ///         .unwrap(),
 ///     TimeExpression::Specific(PointInTime::Relative(RelativeTime {
@@ -259,7 +259,8 @@ impl Parse for Duration {
             }
             if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
-            } else if input.peek(Ident) {
+            }
+            if input.peek(Ident) {
                 let ident = input.fork().parse::<Ident>()?; // don't consume if it isn't `and`
                 if ident.to_string().to_lowercase() == "and" {
                     input.parse::<Ident>()?; // consume the `and`
