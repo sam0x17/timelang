@@ -295,5 +295,74 @@ fn test_parse_duration() {
             hours: 2.into(),
             minutes: 1.into(),
         }
-    )
+    );
+    assert_eq!(
+        parse2::<Duration>(quote!(6 years, 2 hours)).unwrap(),
+        Duration {
+            years: 6.into(),
+            months: 0.into(),
+            weeks: 0.into(),
+            days: 0.into(),
+            hours: 2.into(),
+            minutes: 0.into(),
+        }
+    );
+    assert_eq!(
+        parse2::<Duration>(quote!(3 minutes, 2 hours)).unwrap(),
+        Duration {
+            years: 0.into(),
+            months: 0.into(),
+            weeks: 0.into(),
+            days: 0.into(),
+            hours: 2.into(),
+            minutes: 3.into(),
+        }
+    );
+    assert_eq!(
+        parse2::<Duration>(quote!(77 Weeks)).unwrap(),
+        Duration {
+            years: 0.into(),
+            months: 0.into(),
+            weeks: 77.into(),
+            days: 0.into(),
+            hours: 0.into(),
+            minutes: 0.into(),
+        }
+    );
+    assert_eq!(
+        Duration {
+            years: 1.into(),
+            months: 2.into(),
+            weeks: 3.into(),
+            days: 4.into(),
+            hours: 5.into(),
+            minutes: 6.into(),
+        }
+        .to_string(),
+        "1 year, 2 months, 3 weeks, 4 days, 5 hours, 6 minutes"
+    );
+    assert_eq!(
+        Duration {
+            years: 2.into(),
+            months: 0.into(),
+            weeks: 0.into(),
+            days: 0.into(),
+            hours: 0.into(),
+            minutes: 1.into(),
+        }
+        .to_string(),
+        "2 years, 1 minute"
+    );
+    assert_eq!(
+        Duration {
+            years: 0.into(),
+            months: 0.into(),
+            weeks: 0.into(),
+            days: 0.into(),
+            hours: 0.into(),
+            minutes: 2.into(),
+        }
+        .to_string(),
+        "2 minutes"
+    );
 }

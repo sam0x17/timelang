@@ -70,7 +70,13 @@ impl Parse for Duration {
                 break;
             }
         }
-        if minutes.is_none() && hours.is_none() && days.is_none() && years.is_none() {
+        if minutes.is_none()
+            && hours.is_none()
+            && days.is_none()
+            && weeks.is_none()
+            && months.is_none()
+            && years.is_none()
+        {
             return Err(Error::new(
                 input.span(),
                 "expected [number] followed by one of `minutes`, `hours`, `days`, `years`",
@@ -141,11 +147,6 @@ impl Display for Duration {
             write!(f, "1 hour")?;
         } else if self.hours > 1 {
             write!(f, "{} hours", self.hours)?;
-        }
-        if self.days == 1 {
-            write!(f, "1 day")?;
-        } else if self.days > 1 {
-            write!(f, "{} days", self.days)?;
         }
         if self.minutes > 0 {
             if before {
