@@ -168,6 +168,25 @@ pub enum PointInTime {
     Relative(RelativeTime),
 }
 
+impl Parse for PointInTime {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(LitInt) && input.peek2(Token![/]) {
+            Ok(PointInTime::Absolute(input.parse::<AbsoluteTime>()?))
+        } else {
+            Ok(PointInTime::Relative(input.parse::<RelativeTime>()?))
+        }
+    }
+}
+
+impl Display for PointInTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PointInTime::Absolute(abs) => write!(f, "{abs}"),
+            PointInTime::Relative(rel) => write!(f, "{rel}"),
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum AbsoluteTime {
     Date(Date),

@@ -366,3 +366,41 @@ fn test_parse_duration() {
         "2 minutes"
     );
 }
+
+#[test]
+fn test_parse_point_in_time() {
+    use AmPm::*;
+
+    assert_eq!(
+        parse2::<PointInTime>(quote!(5 days from now)).unwrap(),
+        PointInTime::Relative(RelativeTime {
+            num: Number(5),
+            unit: TimeUnit::Days,
+            dir: TimeDirection::FromNow
+        })
+    );
+    assert_eq!(
+        parse2::<PointInTime>(quote!(22/4/1991 5:01 PM)).unwrap(),
+        PointInTime::Absolute(AbsoluteTime::DateTime(DateTime(
+            Date(Month::April, DayOfMonth(22), Year(1991)),
+            Time(Hour::Hour12(5, PM), Minute(01))
+        )))
+    );
+    assert_eq!(
+        PointInTime::Absolute(AbsoluteTime::DateTime(DateTime(
+            Date(Month::April, DayOfMonth(22), Year(1991)),
+            Time(Hour::Hour12(5, PM), Minute(01))
+        )))
+        .to_string(),
+        "22/4/1991 5:01 PM"
+    );
+    assert_eq!(
+        PointInTime::Relative(RelativeTime {
+            num: Number(5),
+            unit: TimeUnit::Days,
+            dir: TimeDirection::FromNow
+        })
+        .to_string(),
+        "5 days from now"
+    );
+}
