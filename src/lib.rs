@@ -165,11 +165,81 @@ mod tests;
 ///     }))
 /// );
 /// ```
+///
+/// Relative Time (`after` a specific date):
+///
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "2 hours, 3 minutes after 10/10/2022"
+///         .parse::<TimeExpression>()
+///         .unwrap(),
+///     TimeExpression::Specific(PointInTime::Relative(RelativeTime {
+///         duration: Duration {
+///             hours: Number(2),
+///             minutes: Number(3),
+///             days: Number(0),
+///             weeks: Number(0),
+///             months: Number(0),
+///             years: Number(0)
+///         },
+///         dir: TimeDirection::After(AbsoluteTime::Date(Date(
+///             Month::October,
+///             DayOfMonth(10),
+///             Year(2022)
+///         )))
+///     }))
+/// );
+/// ```
+///
+/// Relative Time (`before` a specific date/time):
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "1 day before 31/12/2023 at 11:13 PM"
+///         .parse::<TimeExpression>()
+///         .unwrap(),
+///     TimeExpression::Specific(PointInTime::Relative(RelativeTime {
+///         duration: Duration {
+///             days: Number(1),
+///             minutes: Number(0),
+///             hours: Number(0),
+///             weeks: Number(0),
+///             months: Number(0),
+///             years: Number(0)
+///         },
+///         dir: TimeDirection::Before(AbsoluteTime::DateTime(DateTime(
+///             Date(Month::December, DayOfMonth(31), Year(2023)),
+///             Time(Hour::Hour12(11, AmPm::PM), Minute(13))
+///         )))
+///     }))
+/// );
+/// ```
+///
+/// Time Range (with specific date/times):
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "from 1/1/2024 at 10:00 to 2/1/2024 at 15:30"
+///         .parse::<TimeExpression>()
+///         .unwrap(),
+///     TimeExpression::Range(TimeRange(
+///         PointInTime::Absolute(AbsoluteTime::DateTime(DateTime(
+///             Date(Month::January, DayOfMonth(1), Year(2024)),
+///             Time(Hour::Hour24(10), Minute(0))
+///         ))),
+///         PointInTime::Absolute(AbsoluteTime::DateTime(DateTime(
+///             Date(Month::January, DayOfMonth(2), Year(2024)),
+///             Time(Hour::Hour24(15), Minute(30))
+///         )))
+///     ))
+/// );
+/// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeExpression {
-    Specific(PointInTime), // (LitInt, Ident) or (LitInt, Token![/])
-    Range(TimeRange),      // Ident, LitInt
-    Duration(Duration),    // LitInt, Ident
+    Specific(PointInTime),
+    Range(TimeRange),
+    Duration(Duration),
 }
 
 impl Parse for TimeExpression {
@@ -208,11 +278,13 @@ pub struct TimeRange(pub PointInTime, pub PointInTime);
 
 impl Parse for TimeRange {
     fn parse(input: ParseStream) -> Result<Self> {
+        println!("{}", input.fork().to_string());
         let ident = input.parse::<Ident>()?;
         if ident.to_string().to_lowercase() != "from" {
             return Err(Error::new(ident.span(), "expected `from`"));
         }
         let t1 = input.parse::<PointInTime>()?;
+        println!("{}", input.fork().to_string());
         let ident = input.parse::<Ident>()?;
         if ident.to_string().to_lowercase() != "to" {
             return Err(Error::new(ident.span(), "expected `to`"));
@@ -397,6 +469,8 @@ impl Parse for AbsoluteTime {
         if (fork.peek(LitInt) && fork.peek2(Token![:]) && fork.peek3(LitInt))
             || (fork.peek(Ident) && fork.peek2(LitInt) && fork.peek3(Token![:]))
         {
+            // problem is tail of this is consuming an extra ident
+            println!("IN HERE");
             return Ok(AbsoluteTime::DateTime(input.parse()?));
         }
         Ok(AbsoluteTime::Date(input.parse()?))
