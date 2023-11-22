@@ -30,9 +30,40 @@ mod tests;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeExpression {
-    Specific(PointInTime),
-    Range(TimeRange),
-    Duration(Duration),
+    Specific(PointInTime), // (LitInt, Ident) or (LitInt, Token![/])
+    Range(TimeRange),      // Ident, LitInt
+    Duration(Duration),    // LitInt, Ident
+}
+
+impl Parse for TimeExpression {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if !input.peek(Ident) && !input.peek(LitInt) {
+            return Err(Error::new(input.span(), "expected [number] or [keyword]"));
+        }
+        if input.peek(Ident) {
+            return Ok(TimeExpression::Range(input.parse()?));
+        }
+        if input.peek(LitInt) && input.peek2(Token![/]) {
+            // case 2 for PointInTime
+            return Ok(TimeExpression::Specific(input.parse()?));
+        }
+        // now we either have a Duration or PointInTime starting with a Duration
+        let fork = input.fork();
+        if fork.parse::<PointInTime>().is_ok() {
+            return Ok(TimeExpression::Specific(input.parse()?));
+        }
+        Ok(TimeExpression::Duration(input.parse()?))
+    }
+}
+
+impl Display for TimeExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TimeExpression::Specific(point) => write!(f, "{point}"),
+            TimeExpression::Range(tr) => write!(f, "{tr}"),
+            TimeExpression::Duration(dur) => write!(f, "{dur}"),
+        }
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -764,6 +795,7 @@ impl Parse for DayOfWeek {
     }
 }
 
+#[cfg(test)]
 macro_rules! assert_impl_all {
     ($($typ:ty),* : $($tt:tt)*) => {{
         const fn _assert_impl<T>() where T: $($tt)*, {}
@@ -771,9 +803,28 @@ macro_rules! assert_impl_all {
     }};
 }
 
-// #[test]
-// fn test_traits() {
-//     assert_impl_all!(DayOfWeek, TimeDirection, TimeUnit, AmPm, Month, Hour, AbsoluteTime,
-//     Duration, RelativeTime, PointInTime, TimeExpression : Copy + Clone + PartialEq + Eq +
-//     PartialOrd + Ord + core::fmt::Debug + core::fmt::Display + Parse + core::hash::Hash);
-// }
+#[test]
+fn test_traits() {
+    assert_impl_all!(
+        DayOfWeek,
+        TimeDirection,
+        TimeUnit,
+        AmPm,
+        Month,
+        Hour,
+        AbsoluteTime,
+        Duration,
+        RelativeTime,
+        PointInTime,
+        TimeExpression : Copy
+        + Clone
+        + PartialEq
+        + Eq
+        + PartialOrd
+        + Ord
+        + core::fmt::Debug
+        + core::fmt::Display
+        + Parse
+        + core::hash::Hash
+    );
+}

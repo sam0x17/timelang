@@ -451,3 +451,28 @@ fn test_parse_time_range() {
         "from 8789 hours ago to 37 days from now"
     );
 }
+
+#[test]
+fn test_parse_time_expressions() {
+    parse2::<TimeExpression>(quote!(3 hours)).unwrap();
+    parse2::<TimeExpression>(quote!(3 hours before 2/1/1822 11:59 PM)).unwrap();
+    parse2::<TimeExpression>(quote!(2/1/1822 22:34)).unwrap();
+    assert_eq!(
+        parse2::<TimeExpression>(quote!(2/1/1822 22:34))
+            .unwrap()
+            .to_string(),
+        "2/1/1822 22:34"
+    );
+    assert_eq!(
+        parse2::<TimeExpression>(quote!(3 hours before 2/1/1822 11:59 PM))
+            .unwrap()
+            .to_string(),
+        "3 hours before 2/1/1822 11:59 PM"
+    );
+    assert_eq!(
+        parse2::<TimeExpression>(quote!(3 hours))
+            .unwrap()
+            .to_string(),
+        "3 hours"
+    );
+}
