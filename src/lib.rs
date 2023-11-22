@@ -240,24 +240,22 @@ impl Display for AbsoluteTime {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct RelativeTime {
-    // 5 days after 22/5/2024
-    pub num: Number,
-    pub unit: TimeUnit,
+    // 5 days, 3 hours after 22/5/2024
+    pub duration: Duration,
     pub dir: TimeDirection,
 }
 
 impl Parse for RelativeTime {
     fn parse(input: ParseStream) -> Result<Self> {
-        let num = input.parse::<Number>()?;
-        let unit = input.parse::<TimeUnit>()?;
+        let duration = input.parse::<Duration>()?;
         let dir = input.parse::<TimeDirection>()?;
-        Ok(RelativeTime { num, unit, dir })
+        Ok(RelativeTime { duration, dir })
     }
 }
 
 impl Display for RelativeTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} {}", self.num, self.unit, self.dir)
+        write!(f, "{} {}", self.duration, self.dir)
     }
 }
 

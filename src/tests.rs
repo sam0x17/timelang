@@ -239,24 +239,42 @@ fn test_parse_relative_time() {
     assert_eq!(
         parse2::<RelativeTime>(quote!(5 days from now)).unwrap(),
         RelativeTime {
-            num: Number(5),
-            unit: TimeUnit::Days,
+            duration: Duration {
+                minutes: 0.into(),
+                hours: 0.into(),
+                days: 5.into(),
+                weeks: 0.into(),
+                months: 0.into(),
+                years: 0.into(),
+            },
             dir: TimeDirection::FromNow
         }
     );
     assert_eq!(
-        parse2::<RelativeTime>(quote!(24787 years ago)).unwrap(),
+        parse2::<RelativeTime>(quote!(24787 years, 32 days ago)).unwrap(),
         RelativeTime {
-            num: Number(24787),
-            unit: TimeUnit::Years,
+            duration: Duration {
+                minutes: 0.into(),
+                hours: 0.into(),
+                days: 32.into(),
+                weeks: 0.into(),
+                months: 0.into(),
+                years: 24787.into(),
+            },
             dir: TimeDirection::Ago
         }
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(3 weeks after 18/4/2024)).unwrap(),
         RelativeTime {
-            num: Number(3),
-            unit: TimeUnit::Weeks,
+            duration: Duration {
+                minutes: 0.into(),
+                hours: 0.into(),
+                days: 0.into(),
+                weeks: 3.into(),
+                months: 0.into(),
+                years: 0.into(),
+            },
             dir: TimeDirection::After(AbsoluteTime::Date(Date(
                 Month::April,
                 DayOfMonth(18),
@@ -267,8 +285,14 @@ fn test_parse_relative_time() {
     assert_eq!(
         parse2::<RelativeTime>(quote!(7 days before 14/3/2026 5:04 PM)).unwrap(),
         RelativeTime {
-            num: Number(7),
-            unit: TimeUnit::Days,
+            duration: Duration {
+                minutes: 0.into(),
+                hours: 0.into(),
+                days: 7.into(),
+                weeks: 0.into(),
+                months: 0.into(),
+                years: 0.into(),
+            },
             dir: TimeDirection::Before(AbsoluteTime::DateTime(DateTime(
                 Date(Month::March, DayOfMonth(14), Year(2026)),
                 Time(Hour::Hour12(5, AmPm::PM), Minute(4))
@@ -374,8 +398,14 @@ fn test_parse_point_in_time() {
     assert_eq!(
         parse2::<PointInTime>(quote!(5 days from now)).unwrap(),
         PointInTime::Relative(RelativeTime {
-            num: Number(5),
-            unit: TimeUnit::Days,
+            duration: Duration {
+                minutes: 0.into(),
+                hours: 0.into(),
+                days: 5.into(),
+                weeks: 0.into(),
+                months: 0.into(),
+                years: 0.into(),
+            },
             dir: TimeDirection::FromNow
         })
     );
@@ -396,8 +426,14 @@ fn test_parse_point_in_time() {
     );
     assert_eq!(
         PointInTime::Relative(RelativeTime {
-            num: Number(5),
-            unit: TimeUnit::Days,
+            duration: Duration {
+                minutes: 0.into(),
+                hours: 0.into(),
+                days: 5.into(),
+                weeks: 0.into(),
+                months: 0.into(),
+                years: 0.into(),
+            },
             dir: TimeDirection::FromNow
         })
         .to_string(),
@@ -407,7 +443,7 @@ fn test_parse_point_in_time() {
 
 #[test]
 fn test_parse_time_range() {
-    parse2::<TimeRange>(quote!(from 1 hour ago to 22/4/2029)).unwrap();
+    parse2::<TimeRange>(quote!(from 3 days, 1 hour, 23 minutes ago to 22/4/2029)).unwrap();
     assert_eq!(
         parse2::<TimeRange>(quote!(from 8789 hours ago to 37 days from now))
             .unwrap()
