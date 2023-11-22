@@ -10,11 +10,11 @@
 //! TimeExpression → PointInTime | TimeRange | Duration
 //! PointInTime → AbsoluteTime | RelativeTime
 //! TimeRange → 'from' PointInTime 'to' PointInTime
-//! Duration → (Number TimeUnit)+
+//! Duration → Number TimeUnit ((',' | 'and')? Number TimeUnit)*
 //! AbsoluteTime → Date | DateTime
 //! RelativeTime → Duration 'ago' | Duration 'from now' | Duration 'before' AbsoluteTime | Duration 'after' AbsoluteTime
 //! Date → DayOfMonth '/' Month '/' Year
-//! DateTime → Date Time
+//! DateTime → Date ('at')? Time
 //! Time → Hour ':' Minute AmPm?
 //! Hour → Number
 //! Minute → Number
@@ -137,8 +137,11 @@ impl Parse for Duration {
             }
             if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
-            } else {
-                break;
+            } else if input.peek(Ident) {
+                let ident = input.fork().parse::<Ident>()?; // don't consume if it isn't `and`
+                if ident.to_string().to_lowercase() == "and" {
+                    input.parse::<Ident>()?; // consume the `and`
+                }
             }
         }
         if minutes.is_none()
@@ -331,6 +334,12 @@ pub struct DateTime(pub Date, pub Time); // 22/4/1991 5:25 PM
 impl Parse for DateTime {
     fn parse(input: ParseStream) -> Result<Self> {
         let date = input.parse::<Date>()?;
+        if input.peek(Ident) {
+            let ident = input.parse::<Ident>()?;
+            if ident.to_string().to_lowercase().as_str() != "at" {
+                return Err(Error::new(ident.span(), "expected `at`"));
+            }
+        }
         let time = input.parse::<Time>()?;
         Ok(DateTime(date, time))
     }
@@ -338,7 +347,7 @@ impl Parse for DateTime {
 
 impl Display for DateTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{} {}", self.0, self.1))
+        f.write_fmt(format_args!("{} at {}", self.0, self.1))
     }
 }
 

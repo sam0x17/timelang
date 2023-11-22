@@ -133,7 +133,7 @@ fn test_parse_date_time() {
     use AmPm::*;
 
     assert_eq!(
-        parse2::<DateTime>(quote!(5/6/2024 6:23 AM)).unwrap(),
+        parse2::<DateTime>(quote!(5/6/2024 at 6:23 AM)).unwrap(),
         DateTime(
             Date(Month::June, DayOfMonth(5), Year(2024)),
             Time(Hour::Hour12(6, AM), Minute(23))
@@ -150,7 +150,7 @@ fn test_parse_date_time() {
         parse2::<DateTime>(quote!(1/1/2001 7:01 PM))
             .unwrap()
             .to_string(),
-        "1/1/2001 7:01 PM"
+        "1/1/2001 at 7:01 PM"
     );
 }
 
@@ -173,7 +173,7 @@ fn test_parse_absolute_time() {
         parse2::<AbsoluteTime>(quote!(22/4/1991 5:01 PM))
             .unwrap()
             .to_string(),
-        "22/4/1991 5:01 PM"
+        "22/4/1991 at 5:01 PM"
     );
     assert_eq!(
         parse2::<AbsoluteTime>(quote!(22 / 4 / 1991))
@@ -303,14 +303,15 @@ fn test_parse_relative_time() {
         parse2::<RelativeTime>(quote!(7 days before 14/3/2026 5:04 PM))
             .unwrap()
             .to_string(),
-        "7 days before 14/3/2026 5:04 PM"
+        "7 days before 14/3/2026 at 5:04 PM"
     );
 }
 
 #[test]
 fn test_parse_duration() {
     assert_eq!(
-        parse2::<Duration>(quote!(6 years, 5 months, 4 weeks, 3 days, 2 hours, 1 minute)).unwrap(),
+        parse2::<Duration>(quote!(6 years 5 months and 4 weeks, 3 days, 2 hours, 1 minute))
+            .unwrap(),
         Duration {
             years: 6.into(),
             months: 5.into(),
@@ -332,7 +333,7 @@ fn test_parse_duration() {
         }
     );
     assert_eq!(
-        parse2::<Duration>(quote!(3 minutes, 2 hours)).unwrap(),
+        parse2::<Duration>(quote!(3 minutes and 2 hours)).unwrap(),
         Duration {
             years: 0.into(),
             months: 0.into(),
@@ -422,7 +423,7 @@ fn test_parse_point_in_time() {
             Time(Hour::Hour12(5, PM), Minute(01))
         )))
         .to_string(),
-        "22/4/1991 5:01 PM"
+        "22/4/1991 at 5:01 PM"
     );
     assert_eq!(
         PointInTime::Relative(RelativeTime {
@@ -461,13 +462,13 @@ fn test_parse_time_expressions() {
         parse2::<TimeExpression>(quote!(2/1/1822 22:34))
             .unwrap()
             .to_string(),
-        "2/1/1822 22:34"
+        "2/1/1822 at 22:34"
     );
     assert_eq!(
         parse2::<TimeExpression>(quote!(3 hours before 2/1/1822 11:59 PM))
             .unwrap()
             .to_string(),
-        "3 hours before 2/1/1822 11:59 PM"
+        "3 hours before 2/1/1822 at 11:59 PM"
     );
     assert_eq!(
         parse2::<TimeExpression>(quote!(3 hours))
