@@ -38,6 +38,11 @@ use syn::{
 #[cfg(test)]
 mod tests;
 
+/// The high-level AST node for Timelang.
+///
+/// Usually you would want a more specific type like [`PointInTime`], [`TimeRange`], [`Time`],
+/// [`DateTime`], etc., however this node type is included so we can technically consider
+/// Timelang to be a distinct language.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeExpression {
     Specific(PointInTime), // (LitInt, Ident) or (LitInt, Token![/])
