@@ -404,3 +404,14 @@ fn test_parse_point_in_time() {
         "5 days from now"
     );
 }
+
+#[test]
+fn test_parse_time_range() {
+    parse2::<TimeRange>(quote!(from 1 hour ago to 22/4/2029)).unwrap();
+    assert_eq!(
+        parse2::<TimeRange>(quote!(from 8789 hours ago to 37 days from now))
+            .unwrap()
+            .to_string(),
+        "from 8789 hours ago to 37 days from now"
+    );
+}

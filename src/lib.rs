@@ -31,8 +31,33 @@ mod tests;
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeExpression {
     Specific(PointInTime),
-    Range(PointInTime, PointInTime),
+    Range(TimeRange),
     Duration(Duration),
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub struct TimeRange(pub PointInTime, pub PointInTime);
+
+impl Parse for TimeRange {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident = input.parse::<Ident>()?;
+        if ident.to_string().to_lowercase() != "from" {
+            return Err(Error::new(ident.span(), "expected `from`"));
+        }
+        let t1 = input.parse::<PointInTime>()?;
+        let ident = input.parse::<Ident>()?;
+        if ident.to_string().to_lowercase() != "to" {
+            return Err(Error::new(ident.span(), "expected `to`"));
+        }
+        let t2 = input.parse::<PointInTime>()?;
+        Ok(TimeRange(t1, t2))
+    }
+}
+
+impl Display for TimeRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "from {} to {}", self.0, self.1)
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
