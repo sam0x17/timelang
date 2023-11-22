@@ -47,7 +47,7 @@ mod tests;
 ///
 /// ## Examples
 ///
-/// ### Specific Date
+/// Specific Date:
 /// ```
 /// use timelang::*;
 /// assert_eq!(
@@ -60,7 +60,7 @@ mod tests;
 /// );
 /// ```
 ///
-/// ### Specific DateTime
+/// Specific DateTime:
 /// ```
 /// use timelang::*;
 /// assert_eq!(
@@ -69,6 +69,100 @@ mod tests;
 ///         Date(Month::June, DayOfMonth(15), Year(2022)),
 ///         Time(Hour::Hour24(14), Minute(0))
 ///     ))
+/// );
+/// ```
+///
+/// Time Range:
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "from 1/1/2023 to 15/1/2023"
+///         .parse::<TimeExpression>()
+///         .unwrap(),
+///     TimeExpression::Range(TimeRange(
+///         PointInTime::Absolute(AbsoluteTime::Date(Date(
+///             Month::January,
+///             DayOfMonth(1),
+///             Year(2023)
+///         ))),
+///         PointInTime::Absolute(AbsoluteTime::Date(Date(
+///             Month::January,
+///             DayOfMonth(15),
+///             Year(2023)
+///         )))
+///     ))
+/// );
+/// ```
+///
+/// Duration (multiple units with comma):
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "2 hours, 30 minutes".parse::<TimeExpression>().unwrap(),
+///     TimeExpression::Duration(Duration {
+///         hours: Number(2),
+///         minutes: Number(30),
+///         days: Number(0),
+///         weeks: Number(0),
+///         months: Number(0),
+///         years: Number(0)
+///     })
+/// );
+/// ```
+///
+/// Duration (multiple units with `and`):
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "1 year and 6 months".parse::<TimeExpression>().unwrap(),
+///     TimeExpression::Duration(Duration {
+///         years: Number(1),
+///         months: Number(6),
+///         days: Number(0),
+///         weeks: Number(0),
+///         hours: Number(0),
+///         minutes: Number(0)
+///     })
+/// );
+/// ```
+///
+/// Relative Time (using `ago`):
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "3 days ago".parse::<TimeExpression>().unwrap(),
+///     TimeExpression::Specific(PointInTime::Relative(RelativeTime {
+///         duration: Duration {
+///             days: Number(3),
+///             minutes: Number(0),
+///             hours: Number(0),
+///             weeks: Number(0),
+///             months: Number(0),
+///             years: Number(0)
+///         },
+///         dir: TimeDirection::Ago
+///     }))
+/// );
+/// ```
+///
+/// Relative Time (using `from now`):
+/// ```
+/// use timelang::*;
+/// assert_eq!(
+///     "5 days, 10 hours and 35 minutes from now"
+///         .parse::<TimeExpression>()
+///         .unwrap(),
+///     TimeExpression::Specific(PointInTime::Relative(RelativeTime {
+///         duration: Duration {
+///             minutes: Number(35),
+///             hours: Number(10),
+///             days: Number(5),
+///             weeks: Number(0),
+///             months: Number(0),
+///             years: Number(0)
+///         },
+///         dir: TimeDirection::FromNow
+///     }))
 /// );
 /// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
