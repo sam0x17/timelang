@@ -23,6 +23,7 @@
 //! The following are all examples of valid expressions in timelang:
 //! - `now` ([RelativeTime] / [PointInTime::Relative])
 //! - `tomorrow` ([RelativeTime] / [PointInTime::Relative])
+//! - `next tuesday` ([RelativeTime] / [PointInTime::Relative])
 //! - `day after tomorrow` ([RelativeTime] / [PointInTime::Relative])
 //! - `the day before yesterday` ([RelativeTime] / [PointInTime::Relative])
 //! - `20/4/2021` ([Date])
