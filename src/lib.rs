@@ -51,7 +51,9 @@ mod tests;
 /// be a distinct language.
 ///
 /// Note that [`TimeExpression`] is [`Sized`], and thus all expressions in timelang have a
-/// predictable memory size and do not require any heap allocations.
+/// predictable memory size and do not require any heap allocations. That said, _parsing_
+/// expressions in timelang does require some temporary allocations that go away when parsing
+/// is complete.
 ///
 /// ## Examples
 ///
@@ -570,7 +572,18 @@ impl Parse for Time {
         let hour_val = hour_lit.base10_parse::<u8>()?;
         input.parse::<Token![:]>()?;
         let min = input.parse::<Minute>()?;
-        if let Ok(am_pm) = input.parse::<AmPm>() {
+        if input.peek(Ident)
+            && ["am", "pm"].contains(
+                &input
+                    .fork()
+                    .parse::<Ident>()
+                    .unwrap()
+                    .to_string()
+                    .to_lowercase()
+                    .as_str(),
+            )
+        {
+            let am_pm = input.parse::<AmPm>()?;
             if hour_val > 12 || hour_val == 0 {
                 return Err(Error::new(
                     hour_lit.span(),
