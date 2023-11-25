@@ -238,7 +238,7 @@ fn test_parse_time_direction() {
 fn test_parse_relative_time() {
     assert_eq!(
         parse2::<RelativeTime>(quote!(5 days from now)).unwrap(),
-        RelativeTime {
+        RelativeTime::Directional {
             duration: Duration {
                 minutes: 0.into(),
                 hours: 0.into(),
@@ -252,7 +252,7 @@ fn test_parse_relative_time() {
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(24787 years, 32 days ago)).unwrap(),
-        RelativeTime {
+        RelativeTime::Directional {
             duration: Duration {
                 minutes: 0.into(),
                 hours: 0.into(),
@@ -266,7 +266,7 @@ fn test_parse_relative_time() {
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(3 weeks after 18/4/2024)).unwrap(),
-        RelativeTime {
+        RelativeTime::Directional {
             duration: Duration {
                 minutes: 0.into(),
                 hours: 0.into(),
@@ -284,7 +284,7 @@ fn test_parse_relative_time() {
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(7 days before 14/3/2026 5:04 PM)).unwrap(),
-        RelativeTime {
+        RelativeTime::Directional {
             duration: Duration {
                 minutes: 0.into(),
                 hours: 0.into(),
@@ -304,6 +304,44 @@ fn test_parse_relative_time() {
             .unwrap()
             .to_string(),
         "7 days before 14/3/2026 at 5:04 PM"
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(yesterday)).unwrap(),
+        RelativeTime::Yesterday
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(tomorrow)).unwrap(),
+        RelativeTime::Tomorrow
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(Day Before Yesterday)).unwrap(),
+        RelativeTime::DayBeforeYesterday
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(day after tomorrow)).unwrap(),
+        RelativeTime::DayAfterTomorrow
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(now)).unwrap(),
+        RelativeTime::Now
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(tomorrow))
+            .unwrap()
+            .to_string(),
+        "tomorrow"
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(the day after tomorrow))
+            .unwrap()
+            .to_string(),
+        "the day after tomorrow"
+    );
+    assert_eq!(
+        parse2::<RelativeTime>(quote!(the day before yesterday))
+            .unwrap()
+            .to_string(),
+        "the day before yesterday"
     );
 }
 
@@ -398,7 +436,7 @@ fn test_parse_point_in_time() {
 
     assert_eq!(
         parse2::<PointInTime>(quote!(5 days from now)).unwrap(),
-        PointInTime::Relative(RelativeTime {
+        PointInTime::Relative(RelativeTime::Directional {
             duration: Duration {
                 minutes: 0.into(),
                 hours: 0.into(),
@@ -426,7 +464,7 @@ fn test_parse_point_in_time() {
         "22/4/1991 at 5:01 PM"
     );
     assert_eq!(
-        PointInTime::Relative(RelativeTime {
+        PointInTime::Relative(RelativeTime::Directional {
             duration: Duration {
                 minutes: 0.into(),
                 hours: 0.into(),

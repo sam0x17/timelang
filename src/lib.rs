@@ -173,7 +173,7 @@ mod tests;
 /// use timelang::*;
 /// assert_eq!(
 ///     "3 days ago".parse::<TimeExpression>().unwrap(),
-///     TimeExpression::Specific(PointInTime::Relative(RelativeTime {
+///     TimeExpression::Specific(PointInTime::Relative(RelativeTime::Directional {
 ///         duration: Duration {
 ///             days: Number(3),
 ///             minutes: Number(0),
@@ -194,7 +194,7 @@ mod tests;
 ///     "5 days, 10 hours, and 35 minutes from now"
 ///         .parse::<TimeExpression>()
 ///         .unwrap(),
-///     TimeExpression::Specific(PointInTime::Relative(RelativeTime {
+///     TimeExpression::Specific(PointInTime::Relative(RelativeTime::Directional {
 ///         duration: Duration {
 ///             minutes: Number(35),
 ///             hours: Number(10),
@@ -216,7 +216,7 @@ mod tests;
 ///     "2 hours, 3 minutes after 10/10/2022"
 ///         .parse::<TimeExpression>()
 ///         .unwrap(),
-///     TimeExpression::Specific(PointInTime::Relative(RelativeTime {
+///     TimeExpression::Specific(PointInTime::Relative(RelativeTime::Directional {
 ///         duration: Duration {
 ///             hours: Number(2),
 ///             minutes: Number(3),
@@ -241,7 +241,7 @@ mod tests;
 ///     "1 day before 31/12/2023 at 11:13 PM"
 ///         .parse::<TimeExpression>()
 ///         .unwrap(),
-///     TimeExpression::Specific(PointInTime::Relative(RelativeTime {
+///     TimeExpression::Specific(PointInTime::Relative(RelativeTime::Directional {
 ///         duration: Duration {
 ///             days: Number(1),
 ///             minutes: Number(0),
@@ -275,6 +275,29 @@ mod tests;
 ///             Time(Hour::Hour24(15), Minute(30))
 ///         )))
 ///     ))
+/// );
+/// ```
+///
+/// Relative Time (Named):
+/// ```
+/// use timelang::*;
+/// assert_eq!("now".parse::<RelativeTime>().unwrap(), RelativeTime::Now);
+/// assert_eq!(
+///     "tomorrow".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::Tomorrow
+/// );
+/// assert_eq!(
+///     "yesterday".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::Yesterday
+/// );
+/// assert_eq!(
+///     "day before yesterday".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::DayBeforeYesterday
+/// );
+/// // note the optional `the`
+/// assert_eq!(
+///     "the day after tomorrow".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::DayAfterTomorrow
 /// );
 /// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -584,10 +607,8 @@ pub enum RelativeTime {
     Today,
     Tomorrow,
     Yesterday,
-    DayBeforeTomorrow,
     DayAfterTomorrow,
     DayBeforeYesterday,
-    DayAfterYesterday,
     Next(RelativeTimeUnit),
     Last(RelativeTimeUnit),
 }
@@ -628,10 +649,8 @@ impl Parse for RelativeTime {
                 let ident2 = ident2.to_string().to_lowercase();
                 let ident3 = ident3.to_string().to_lowercase();
                 if let Some(variant) = match (ident1.as_str(), ident2.as_str(), ident3.as_str()) {
-                    ("day", "before", "tomorrow") => Some(RelativeTime::DayBeforeTomorrow),
                     ("day", "after", "tomorrow") => Some(RelativeTime::DayAfterTomorrow),
                     ("day", "before", "yesterday") => Some(RelativeTime::DayBeforeYesterday),
-                    ("day", "after", "yesterday") => Some(RelativeTime::DayAfterYesterday),
                     _ => None,
                 } {
                     input.parse::<Ident>()?;
@@ -656,9 +675,7 @@ impl Display for RelativeTime {
             RelativeTime::Tomorrow => f.write_str("tomorrow"),
             RelativeTime::Yesterday => f.write_str("yesterday"),
             RelativeTime::DayAfterTomorrow => f.write_str("the day after tomorrow"),
-            RelativeTime::DayBeforeTomorrow => f.write_str("the day before tomorrow"),
             RelativeTime::DayBeforeYesterday => f.write_str("the day before yesterday"),
-            RelativeTime::DayAfterYesterday => f.write_str("the day after yesterday"),
             RelativeTime::Next(unit) => write!(f, "next {unit}"),
             RelativeTime::Last(unit) => write!(f, "last {unit}"),
         }
