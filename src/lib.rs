@@ -537,7 +537,10 @@ impl Display for Duration {
 /// from some [AbsoluteTime] or "now").
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum PointInTime {
+    /// Based on a specific [Date] or [DateTime] (fixed point) that involves no relative
+    /// indirection, like "3 days after 18/3/2024".
     Absolute(AbsoluteTime),
+    /// Based on an offset from some known fixed point in time, like "next tuesday".
     Relative(RelativeTime),
 }
 
@@ -560,9 +563,12 @@ impl Display for PointInTime {
     }
 }
 
+/// Represents an absolute/fixed point in time, such as a [Date] or [DateTime].
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum AbsoluteTime {
+    /// A [Date], such as "23/9/2028".
     Date(Date),
+    /// A [DateTime], such as "28/1/2025 at 5:23 PM" or "1/1/2019 20:15".
     DateTime(DateTime),
 }
 
@@ -588,17 +594,28 @@ impl Display for AbsoluteTime {
     }
 }
 
+/// Combined with "next" or "after" to denote specific [RelativeTime]s.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum RelativeTimeUnit {
+    /// Week
     Week,
+    /// Month
     Month,
+    /// Year
     Year,
+    /// Monday
     Monday,
+    /// Tuesday
     Tuesday,
+    /// Wednesday
     Wednesday,
+    /// Thursday
     Thursday,
+    /// Friday
     Friday,
+    /// Saturday
     Saturday,
+    /// Sunday
     Sunday,
 }
 
@@ -641,6 +658,8 @@ impl Display for RelativeTimeUnit {
     }
 }
 
+/// Represents a specific point in time offset by some known duration or period, such as
+/// "tomorrow", "now", "next tuesday", "3 days after 2/5/2028 at 7:11 PM" etc..
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum RelativeTime {
     Directional {
