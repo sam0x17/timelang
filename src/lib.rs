@@ -543,23 +543,125 @@ impl Display for AbsoluteTime {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct RelativeTime {
-    // 5 days, 3 hours after 22/5/2024
-    pub duration: Duration,
-    pub dir: TimeDirection,
+pub enum RelativeTimeUnit {
+    Week,
+    Month,
+    Year,
+}
+
+impl Parse for RelativeTimeUnit {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident = input.parse::<Ident>()?;
+        match ident.to_string().to_lowercase().as_str() {
+            "week" => Ok(RelativeTimeUnit::Week),
+            "month" => Ok(RelativeTimeUnit::Month),
+            "year" => Ok(RelativeTimeUnit::Year),
+            _ => Err(Error::new(
+                ident.span(),
+                "expected `week`, `month`, or `year`",
+            )),
+        }
+    }
+}
+
+impl Display for RelativeTimeUnit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RelativeTimeUnit::Week => f.write_str("week"),
+            RelativeTimeUnit::Month => f.write_str("month"),
+            RelativeTimeUnit::Year => f.write_str("year"),
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub enum RelativeTime {
+    Directional {
+        duration: Duration,
+        dir: TimeDirection,
+    },
+    Now,
+    Today,
+    Tomorrow,
+    Yesterday,
+    DayBeforeTomorrow,
+    DayAfterTomorrow,
+    DayBeforeYesterday,
+    DayAfterYesterday,
+    Next(RelativeTimeUnit),
+    Last(RelativeTimeUnit),
 }
 
 impl Parse for RelativeTime {
     fn parse(input: ParseStream) -> Result<Self> {
+        let fork = input.fork();
+        if fork.peek(Ident) {
+            let mut ident1 = fork.parse::<Ident>().unwrap().to_string().to_lowercase();
+            if let Some(variant) = match ident1.as_str() {
+                "now" => Some(RelativeTime::Now),
+                "today" => Some(RelativeTime::Today),
+                "tomorrow" => Some(RelativeTime::Tomorrow),
+                "yesterday" => Some(RelativeTime::Yesterday),
+                _ => None,
+            } {
+                // single-ident variants
+                input.parse::<Ident>()?;
+                return Ok(variant);
+            }
+            if ident1 == "next" || ident1 == "last" {
+                // next / last [unit]
+                input.parse::<Ident>()?;
+                let unit = input.parse::<RelativeTimeUnit>()?;
+                if ident1 == "next" {
+                    return Ok(RelativeTime::Next(unit));
+                } else {
+                    return Ok(RelativeTime::Last(unit));
+                }
+            }
+            if ident1 == "the" && fork.peek(Ident) {
+                // optional "the"
+                ident1 = fork.parse::<Ident>().unwrap().to_string().to_lowercase();
+                input.parse::<Ident>()?; // consume `the`
+            }
+            if let (Ok(ident2), Ok(ident3)) = (fork.parse::<Ident>(), fork.parse::<Ident>()) {
+                // 3-word constants
+                let ident2 = ident2.to_string().to_lowercase();
+                let ident3 = ident3.to_string().to_lowercase();
+                if let Some(variant) = match (ident1.as_str(), ident2.as_str(), ident3.as_str()) {
+                    ("day", "before", "tomorrow") => Some(RelativeTime::DayBeforeTomorrow),
+                    ("day", "after", "tomorrow") => Some(RelativeTime::DayAfterTomorrow),
+                    ("day", "before", "yesterday") => Some(RelativeTime::DayBeforeYesterday),
+                    ("day", "after", "yesterday") => Some(RelativeTime::DayAfterYesterday),
+                    _ => None,
+                } {
+                    input.parse::<Ident>()?;
+                    input.parse::<Ident>()?;
+                    input.parse::<Ident>()?;
+                    return Ok(variant);
+                }
+            }
+        }
         let duration = input.parse::<Duration>()?;
         let dir = input.parse::<TimeDirection>()?;
-        Ok(RelativeTime { duration, dir })
+        Ok(RelativeTime::Directional { duration, dir })
     }
 }
 
 impl Display for RelativeTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.duration, self.dir)
+        match self {
+            RelativeTime::Directional { duration, dir } => write!(f, "{duration} {dir}"),
+            RelativeTime::Now => f.write_str("now"),
+            RelativeTime::Today => f.write_str("today"),
+            RelativeTime::Tomorrow => f.write_str("tomorrow"),
+            RelativeTime::Yesterday => f.write_str("yesterday"),
+            RelativeTime::DayAfterTomorrow => f.write_str("the day after tomorrow"),
+            RelativeTime::DayBeforeTomorrow => f.write_str("the day before tomorrow"),
+            RelativeTime::DayBeforeYesterday => f.write_str("the day before yesterday"),
+            RelativeTime::DayAfterYesterday => f.write_str("the day after yesterday"),
+            RelativeTime::Next(unit) => write!(f, "next {unit}"),
+            RelativeTime::Last(unit) => write!(f, "last {unit}"),
+        }
     }
 }
 
@@ -1112,6 +1214,7 @@ impl_parse_str!(RelativeTime);
 impl_parse_str!(PointInTime);
 impl_parse_str!(Time);
 impl_parse_str!(DateTime);
+impl_parse_str!(RelativeTimeUnit);
 
 #[cfg(test)]
 macro_rules! assert_impl_all {
@@ -1138,6 +1241,7 @@ fn test_traits() {
         PointInTime,
         Time,
         DateTime,
+        RelativeTimeUnit,
         TimeExpression : Copy
         + Clone
         + PartialEq
