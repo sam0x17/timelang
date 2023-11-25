@@ -25,6 +25,11 @@
 //! TimeUnit → 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
 //! Number → [Any positive integer value]
 //! ```
+//!
+//! Note that this CFG is slightly more permissive than the actual timelang grammar, particularly
+//! when it comes to validating the permitted number ranges for various times.
+
+// #![deny(missing_docs)]
 
 use std::{
     fmt::Display,
@@ -39,11 +44,14 @@ use syn::{
 #[cfg(test)]
 mod tests;
 
-/// The high-level AST node for Timelang.
+/// The top-level entry-point for the timelang AST.
 ///
-/// Usually you would want a more specific type like [`PointInTime`], [`TimeRange`], [`Time`],
-/// [`DateTime`], etc., however this node type is included so we can technically consider
-/// Timelang to be a distinct language.
+/// Typically you will want to use a more specific type like [`Duration`], [`PointInTime`], or
+/// [`TimeRange`], but this top-level node-type is provided so that we can consider timelang to
+/// be a distinct language.
+///
+/// Note that [`TimeExpression`] is [`Sized`], and thus all expressions in timelang have a
+/// predictable memory size and do not require any heap allocations.
 ///
 /// ## Examples
 ///
@@ -237,9 +245,12 @@ mod tests;
 /// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeExpression {
-    Specific(PointInTime),
-    Range(TimeRange),
-    Duration(Duration),
+    /// Represents a [`PointInTime`] expression.
+    Specific(PointInTime), // (LitInt, Ident) or (LitInt, Token![/])
+    /// Represents a [`TimeRange`] expression.
+    Range(TimeRange), // Ident, LitInt
+    /// Represents a [`Duration`] expression.
+    Duration(Duration), // LitInt, Ident
 }
 
 impl Parse for TimeExpression {
