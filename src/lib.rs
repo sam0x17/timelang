@@ -291,13 +291,11 @@ pub struct TimeRange(pub PointInTime, pub PointInTime);
 
 impl Parse for TimeRange {
     fn parse(input: ParseStream) -> Result<Self> {
-        println!("{}", input.fork().to_string());
         let ident = input.parse::<Ident>()?;
         if ident.to_string().to_lowercase() != "from" {
             return Err(Error::new(ident.span(), "expected `from`"));
         }
         let t1 = input.parse::<PointInTime>()?;
-        println!("{}", input.fork().to_string());
         let ident = input.parse::<Ident>()?;
         if ident.to_string().to_lowercase() != "to" {
             return Err(Error::new(ident.span(), "expected `to`"));
@@ -482,8 +480,6 @@ impl Parse for AbsoluteTime {
         if (fork.peek(LitInt) && fork.peek2(Token![:]) && fork.peek3(LitInt))
             || (fork.peek(Ident) && fork.peek2(LitInt) && fork.peek3(Token![:]))
         {
-            // problem is tail of this is consuming an extra ident
-            println!("IN HERE");
             return Ok(AbsoluteTime::DateTime(input.parse()?));
         }
         Ok(AbsoluteTime::Date(input.parse()?))
