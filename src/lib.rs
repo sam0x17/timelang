@@ -48,7 +48,7 @@
 //! TimeRange → 'from' PointInTime 'to' PointInTime
 //! Duration → Number TimeUnit ((','? 'and')? Number TimeUnit)*
 //! AbsoluteTime → Date | DateTime
-//! RelativeTime → Duration 'ago' | Duration 'from now' | Duration 'before' AbsoluteTime | Duration 'after' AbsoluteTime
+//! RelativeTime → Duration TimeDirection | Now | Today | Tomorrow | Yesterday | DayAfterTomorrow | DayBeforeYesterday | Next RelativeTimeUnit | Last RelativeTimeUnit
 //! Date → DayOfMonth '/' Month '/' Year
 //! DateTime → Date ('at')? Time
 //! Time → Hour ':' Minute AmPm?
@@ -59,7 +59,17 @@
 //! Year → Number
 //! AmPm → 'AM' | 'PM'
 //! TimeUnit → 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
+//! TimeDirection → 'after' AbsoluteTime | 'before' AbsoluteTime | 'ago' | 'from now'
+//! RelativeTimeUnit → 'week' | 'month' | 'year' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 //! Number → [Any positive integer value]
+//! Now → 'now'
+//! Today → 'today'
+//! Tomorrow → 'tomorrow'
+//! Yesterday → 'yesterday'
+//! DayAfterTomorrow → 'day after tomorrow' | 'the day after tomorrow'
+//! DayBeforeYesterday → 'day before yesterday' | 'the day before yesterday'
+//! Next → 'next'
+//! Last → 'last'
 //! ```
 //!
 //! Note that this CFG is slightly more permissive than the actual timelang grammar, particularly
