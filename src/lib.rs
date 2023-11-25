@@ -21,6 +21,10 @@
 //! ## Examples
 //!
 //! The following are all examples of valid expressions in timelang:
+//! - `now` ([RelativeTime] / [PointInTime::Relative])
+//! - `tomorrow` ([RelativeTime] / [PointInTime::Relative])
+//! - `day after tomorrow` ([RelativeTime] / [PointInTime::Relative])
+//! - `the day before yesterday` ([RelativeTime] / [PointInTime::Relative])
 //! - `20/4/2021` ([Date])
 //! - `11:21 AM` ([Time])
 //! - `15/6/2022 at 3:58 PM` ([DateTime] / [PointInTime::Absolute])
@@ -299,6 +303,14 @@ mod tests;
 ///     "the day after tomorrow".parse::<RelativeTime>().unwrap(),
 ///     RelativeTime::DayAfterTomorrow
 /// );
+/// assert_eq!(
+///     "next tuesday".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::Next(RelativeTimeUnit::Tuesday)
+/// );
+/// assert_eq!(
+///     "last wednesday".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::Last(RelativeTimeUnit::Wednesday)
+/// );
 /// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeExpression {
@@ -570,6 +582,13 @@ pub enum RelativeTimeUnit {
     Week,
     Month,
     Year,
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday,
 }
 
 impl Parse for RelativeTimeUnit {
@@ -579,6 +598,13 @@ impl Parse for RelativeTimeUnit {
             "week" => Ok(RelativeTimeUnit::Week),
             "month" => Ok(RelativeTimeUnit::Month),
             "year" => Ok(RelativeTimeUnit::Year),
+            "monday" => Ok(RelativeTimeUnit::Monday),
+            "tuesday" => Ok(RelativeTimeUnit::Tuesday),
+            "wednesday" => Ok(RelativeTimeUnit::Wednesday),
+            "thursday" => Ok(RelativeTimeUnit::Thursday),
+            "friday" => Ok(RelativeTimeUnit::Friday),
+            "saturday" => Ok(RelativeTimeUnit::Saturday),
+            "sunday" => Ok(RelativeTimeUnit::Sunday),
             _ => Err(Error::new(
                 ident.span(),
                 "expected `week`, `month`, or `year`",
@@ -593,6 +619,13 @@ impl Display for RelativeTimeUnit {
             RelativeTimeUnit::Week => f.write_str("week"),
             RelativeTimeUnit::Month => f.write_str("month"),
             RelativeTimeUnit::Year => f.write_str("year"),
+            RelativeTimeUnit::Monday => f.write_str("Monday"),
+            RelativeTimeUnit::Tuesday => f.write_str("Tuesday"),
+            RelativeTimeUnit::Wednesday => f.write_str("Wednesday"),
+            RelativeTimeUnit::Thursday => f.write_str("Thursday"),
+            RelativeTimeUnit::Friday => f.write_str("Friday"),
+            RelativeTimeUnit::Saturday => f.write_str("Saturday"),
+            RelativeTimeUnit::Sunday => f.write_str("Sunday"),
         }
     }
 }
