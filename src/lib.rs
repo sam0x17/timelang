@@ -2,6 +2,21 @@
 //! time-related expressions including specific date/times, relative expressions like "3 hours
 //! from now", time ranges, and durations.
 //!
+//! ## Examples
+//!
+//! The following are all examples of valid expressions in timelang:
+//! - `20/4/2021` ([Date])
+//! - `11:21 AM` ([Time])
+//! - `15/6/2022 at 3:58 PM` ([DateTime] / [PointInTime::Absolute])
+//! - `2 hours, 37 minutes` ([Duration])
+//! - `5 years, 2 months, 3 weeks and 11 minutes` ([Duration])
+//! - `7 days ago` ([RelativeTime] / [PointInTime::Relative])
+//! - `2 years and 10 minutes from now` ([RelativeTime] / [PointInTime::Relative])
+//! - `5 days, 3 weeks, 6 minutes after 15/4/2025 at 9:27 AM` ([RelativeTime] /
+//!   [`PointInTime::Relative`])
+//! - `from 1/1/2023 at 14:07 to 15/1/2023` ([TimeRange])
+//! - `from 19/3/2024 at 10:07 AM to 3 months 2 days after 3/9/2027 at 5:27 PM` ([TimeRange])
+//!
 //! ## Context Free Grammar
 //! Here is a rough CFG (Context Free Grammar) for timelang:
 //!
@@ -28,6 +43,16 @@
 //!
 //! Note that this CFG is slightly more permissive than the actual timelang grammar, particularly
 //! when it comes to validating the permitted number ranges for various times.
+//!
+//! ## Getting Started
+//!
+//! To use timelang, you should take a look at [`TimeExpression`], which is the top-level entry
+//! point of the AST, or some of the more specific types like [`Duration`], [`PointInTime`],
+//! and [`TimeRange`].
+//!
+//! Note that for the moment, only years, months, weeks, days, hours, and minutes are supported
+//! in timelang, but seconds and more might be added later. Generally better than minute
+//! resolution is not needed in many of the common use-cases for timelang.
 
 // #![deny(missing_docs)]
 
