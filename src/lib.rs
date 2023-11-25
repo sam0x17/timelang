@@ -2,6 +2,22 @@
 //! time-related expressions including specific date/times, relative expressions like "3 hours
 //! from now", time ranges, and durations.
 //!
+//!
+//! ## Getting Started
+//!
+//! To use timelang, you should take a look at [TimeExpression], which is the top-level entry
+//! point of the AST, or some of the more specific types like [Duration], [PointInTime],
+//! and [TimeRange].
+//!
+//! All nodes in timelang impl [FromStr] as well as [syn::parse::Parse] which is used for the
+//! internal parsing logic. The standard [Display] impl is used on all node types as the
+//! preferred means of outputting them to a string.
+//!
+//! Note that for the moment, only years, months, weeks, days, hours, and minutes are supported
+//! in timelang, but seconds and more might be added later. Generally better than minute
+//! resolution is not needed in many of the common use-cases for timelang.
+//!
+//!
 //! ## Examples
 //!
 //! The following are all examples of valid expressions in timelang:
@@ -13,9 +29,10 @@
 //! - `7 days ago` ([RelativeTime] / [PointInTime::Relative])
 //! - `2 years and 10 minutes from now` ([RelativeTime] / [PointInTime::Relative])
 //! - `5 days, 3 weeks, 6 minutes after 15/4/2025 at 9:27 AM` ([RelativeTime] /
-//!   [`PointInTime::Relative`])
+//!   [PointInTime::Relative])
 //! - `from 1/1/2023 at 14:07 to 15/1/2023` ([TimeRange])
 //! - `from 19/3/2024 at 10:07 AM to 3 months 2 days after 3/9/2027 at 5:27 PM` ([TimeRange])
+//!
 //!
 //! ## Context Free Grammar
 //! Here is a rough CFG (Context Free Grammar) for timelang:
@@ -43,16 +60,6 @@
 //!
 //! Note that this CFG is slightly more permissive than the actual timelang grammar, particularly
 //! when it comes to validating the permitted number ranges for various times.
-//!
-//! ## Getting Started
-//!
-//! To use timelang, you should take a look at [`TimeExpression`], which is the top-level entry
-//! point of the AST, or some of the more specific types like [`Duration`], [`PointInTime`],
-//! and [`TimeRange`].
-//!
-//! Note that for the moment, only years, months, weeks, days, hours, and minutes are supported
-//! in timelang, but seconds and more might be added later. Generally better than minute
-//! resolution is not needed in many of the common use-cases for timelang.
 
 // #![deny(missing_docs)]
 
@@ -71,11 +78,11 @@ mod tests;
 
 /// The top-level entry-point for the timelang AST.
 ///
-/// Typically you will want to use a more specific type like [`Duration`], [`PointInTime`], or
-/// [`TimeRange`], but this top-level node-type is provided so that we can consider timelang to
+/// Typically you will want to use a more specific type like [Duration], [PointInTime], or
+/// [TimeRange], but this top-level node-type is provided so that we can consider timelang to
 /// be a distinct language.
 ///
-/// Note that [`TimeExpression`] is [`Sized`], and thus all expressions in timelang have a
+/// Note that [TimeExpression] is [Sized], and thus all expressions in timelang have a
 /// predictable memory size and do not require any heap allocations. That said, _parsing_
 /// expressions in timelang does require some temporary allocations that go away when parsing
 /// is complete.
@@ -272,11 +279,11 @@ mod tests;
 /// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeExpression {
-    /// Represents a [`PointInTime`] expression.
+    /// Represents a [PointInTime] expression.
     Specific(PointInTime), // (LitInt, Ident) or (LitInt, Token![/])
-    /// Represents a [`TimeRange`] expression.
+    /// Represents a [TimeRange] expression.
     Range(TimeRange), // Ident, LitInt
-    /// Represents a [`Duration`] expression.
+    /// Represents a [Duration] expression.
     Duration(Duration), // LitInt, Ident
 }
 
@@ -311,6 +318,8 @@ impl Display for TimeExpression {
     }
 }
 
+/// Represents a range of two valid [PointInTime]s that together define the start and end of
+/// some defined period of time.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct TimeRange(pub PointInTime, pub PointInTime);
 
@@ -336,13 +345,23 @@ impl Display for TimeRange {
     }
 }
 
+/// Represents a specific duration of time that is not anchored at any particular point in time.
+///
+/// Note that individual components, if not specified, will be recorded as `0`. Such components
+/// will not appear when the [Duration] is rendered, printed, or displayed.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Duration {
+    /// The number of minutes.
     pub minutes: Number,
+    /// The number of hours.
     pub hours: Number,
+    /// The number of days.
     pub days: Number,
+    /// The number of weeks.
     pub weeks: Number,
+    /// The number of months.
     pub months: Number,
+    /// The number of years.
     pub years: Number,
 }
 
@@ -467,6 +486,9 @@ impl Display for Duration {
     }
 }
 
+/// Represents a specific point in time, which could either be an [AbsoluteTime] (corresponding
+/// with a particular [Date] or [DateTime]), or a [RelativeTime] (corresponding with an offset
+/// from some [AbsoluteTime] or "now").
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum PointInTime {
     Absolute(AbsoluteTime),
