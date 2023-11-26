@@ -46,8 +46,6 @@ The following are all examples of valid expressions in timelang:
 - `11 days before the day before yesterday`
 - `5 days after next tuesday`
 
-## Examples
-
 Specific Date:
 ```rust
 use timelang::*;
@@ -322,3 +320,13 @@ assert_eq!(
     }
 );
 ```
+
+## Notes
+
+* At the moment [syn](https://crates.io/crates/syn) is used for parsing. This will likely be
+  swapped out for a TBD parsing crate, but it was easy to quickly get this off the ground using
+  syn. Whatever new crate we use will hopefully allow us to make timelang compatible with no
+  std.
+* Timelang is unambiguous, meaning there is exactly one tree representation for all possible
+  timelang sentences. If you can come up with an ambiguous sentence, please let us know by
+  submitting a GitHub issue!
