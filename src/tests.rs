@@ -35,22 +35,6 @@ fn test_parse_numbers() {
 }
 
 #[test]
-fn test_parse_day_of_week_short() {
-    use DayOfWeek::*;
-
-    assert_eq!(parse2::<DayOfWeek>(quote!(Mon)).unwrap(), Mon);
-    assert_eq!(parse2::<DayOfWeek>(quote!(Tue)).unwrap(), Tue);
-    assert_eq!(parse2::<DayOfWeek>(quote!(Wed)).unwrap(), Wed);
-    assert_eq!(parse2::<DayOfWeek>(quote!(Thu)).unwrap(), Thu);
-    assert_eq!(parse2::<DayOfWeek>(quote!(Fri)).unwrap(), Fri);
-    assert_eq!(parse2::<DayOfWeek>(quote!(Sat)).unwrap(), Sat);
-    assert_eq!(parse2::<DayOfWeek>(quote!(Sun)).unwrap(), Sun);
-    assert_eq!(parse2::<DayOfWeek>(quote!(sun)).unwrap(), Sun);
-    assert_eq!(parse2::<DayOfWeek>(quote!(Monday)).unwrap(), Mon);
-    assert!(parse2::<DayOfWeek>(quote!(Mo)).is_err());
-}
-
-#[test]
 fn test_parse_month() {
     use Month::*;
 

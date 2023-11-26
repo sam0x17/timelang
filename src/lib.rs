@@ -69,7 +69,7 @@
 //! Note that this CFG is slightly more permissive than the actual timelang grammar, particularly
 //! when it comes to validating the permitted number ranges for various times.
 
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 
 use std::{
     fmt::Display,
@@ -846,6 +846,7 @@ impl Display for RelativeTime {
     }
 }
 
+/// A `dd/mm/yyyy` style date.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Date(pub Month, pub DayOfMonth, pub Year);
 
@@ -866,6 +867,10 @@ impl Display for Date {
     }
 }
 
+/// e.g. `22/4/1991 5:25 PM`, `22/4/1991 at 5:25 PM`, `22/4/1991 15:28`.
+///
+/// Note that "at" is optional and time can either be 12-hour (must have am/pm specified) or
+/// 24-hour.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct DateTime(pub Date, pub Time); // 22/4/1991 5:25 PM
 
@@ -889,6 +894,9 @@ impl Display for DateTime {
     }
 }
 
+/// A simple representation of the time, e.g. `13:07` or `5:07 PM`.
+///
+/// Both 24-hour and 12-hour are supported (must specify `AM` or `PM` when using 12-hour).
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Time(pub Hour, pub Minute);
 
@@ -939,6 +947,7 @@ impl Display for Time {
     }
 }
 
+/// Represents a particular day of the month, which can range from 1 to 31.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct DayOfMonth(pub u8);
 
@@ -962,6 +971,7 @@ impl Display for DayOfMonth {
     }
 }
 
+/// Represents a year, which can be any valid [`u16`].
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Year(pub u16);
 
@@ -979,9 +989,12 @@ impl Display for Year {
     }
 }
 
+/// Represents an hour of the day in either 12-hour or 24-hour format.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum Hour {
+    /// 12-hour format, i.e. `5 PM`
     Hour12(u8, AmPm),
+    /// 24-hour format, i.e. `18`
     Hour24(u8),
 }
 
@@ -1017,6 +1030,7 @@ impl Display for Hour {
     }
 }
 
+/// Represents a minute of the hour, which can range from 0 to 60.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Minute(pub u8);
 
@@ -1040,20 +1054,33 @@ impl Display for Minute {
     }
 }
 
+/// Represents a particular month of the year, which can range from 1-12
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[repr(u8)]
 pub enum Month {
+    /// January (1)
     January = 1,
+    /// February (2)
     February,
+    /// March (3)
     March,
+    /// April (4)
     April,
+    /// May (5)
     May,
+    /// June (6)
     June,
+    /// July (7)
     July,
+    /// August (8)
     August,
+    /// September (9)
     September,
+    /// October (10)
     October,
+    /// November (11)
     November,
+    /// December (12)
     December,
 }
 
@@ -1119,9 +1146,12 @@ impl Display for Month {
     }
 }
 
+/// Represents either AM or PM
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum AmPm {
+    /// AM
     AM,
+    /// PM
     PM,
 }
 
@@ -1154,13 +1184,20 @@ impl AsRef<str> for AmPm {
     }
 }
 
+/// Represents particular units of time, such as hours, minutes, etc.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeUnit {
+    /// Minutes
     Minutes,
+    /// Hours
     Hours,
+    /// Days
     Days,
+    /// Weeks
     Weeks,
+    /// Months
     Months,
+    /// Years
     Years,
 }
 
@@ -1204,17 +1241,28 @@ impl Display for TimeUnit {
     }
 }
 
+/// Enumerates the various types of relative times that can be paired with a [Duration].
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeDirection {
+    /// e.g. `after 18/7/2025 at 3:22 PM`
     AfterAbsolute(AbsoluteTime),
+    /// e.g. `before 18/7/2025 at 3:22 PM`
     BeforeAbsolute(AbsoluteTime),
+    /// e.g. `after tomorrow`
     AfterNamed(NamedRelativeTime),
+    /// e.g. `before yesterday`
     BeforeNamed(NamedRelativeTime),
+    /// e.g. `before next tuesday`
     BeforeNext(RelativeTimeUnit),
+    /// e.g. `before last week`
     BeforeLast(RelativeTimeUnit),
+    /// e.g. `after next thursday`
     AfterNext(RelativeTimeUnit),
+    /// e.g. `after last month`
     AfterLast(RelativeTimeUnit),
+    /// Ago
     Ago,
+    /// From now
     FromNow,
 }
 
@@ -1291,6 +1339,7 @@ impl Display for TimeDirection {
     }
 }
 
+/// Represents a positive integer, stored as a [`u64`].
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Number(pub u64);
 
@@ -1364,56 +1413,6 @@ impl Display for Number {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub enum DayOfWeek {
-    Sun,
-    Mon,
-    Tue,
-    Wed,
-    Thu,
-    Fri,
-    Sat,
-}
-
-impl AsRef<str> for DayOfWeek {
-    fn as_ref(&self) -> &str {
-        match self {
-            DayOfWeek::Sun => "Sun",
-            DayOfWeek::Mon => "Mon",
-            DayOfWeek::Tue => "Tue",
-            DayOfWeek::Wed => "Wed",
-            DayOfWeek::Thu => "Thu",
-            DayOfWeek::Fri => "Fri",
-            DayOfWeek::Sat => "Sat",
-        }
-    }
-}
-
-impl Display for DayOfWeek {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_ref())
-    }
-}
-
-impl Parse for DayOfWeek {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let ident = input.parse::<Ident>()?;
-        match ident.to_string().to_lowercase().as_str() {
-            "sun" | "sunday" => Ok(DayOfWeek::Sun),
-            "mon" | "monday" => Ok(DayOfWeek::Mon),
-            "tue" | "tuesday" => Ok(DayOfWeek::Tue),
-            "wed" | "wednesday" => Ok(DayOfWeek::Wed),
-            "thu" | "thursday" => Ok(DayOfWeek::Thu),
-            "fri" | "friday" => Ok(DayOfWeek::Fri),
-            "sat" | "saturday" => Ok(DayOfWeek::Sat),
-            _ => Err(Error::new(
-                ident.span(),
-                "expected one of `Sun`, `Mon`, `Tue`, `Wed`, `Thu`, `Fri`, `Sat`",
-            )),
-        }
-    }
-}
-
 macro_rules! impl_parse_str {
     ($ident:ident) => {
         impl FromStr for $ident {
@@ -1432,7 +1431,6 @@ impl_parse_str!(TimeUnit);
 impl_parse_str!(AmPm);
 impl_parse_str!(DayOfMonth);
 impl_parse_str!(Minute);
-impl_parse_str!(DayOfWeek);
 impl_parse_str!(Month);
 impl_parse_str!(Hour);
 impl_parse_str!(AbsoluteTime);
@@ -1459,7 +1457,6 @@ fn test_traits() {
         AmPm,
         DayOfMonth,
         Minute,
-        DayOfWeek,
         Month,
         Hour,
         AbsoluteTime,
