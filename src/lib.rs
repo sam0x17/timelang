@@ -49,7 +49,7 @@
 //! TimeRange → 'from' PointInTime 'to' PointInTime
 //! Duration → Number TimeUnit ((','? 'and')? Number TimeUnit)*
 //! AbsoluteTime → Date | DateTime
-//! RelativeTime → Duration TimeDirection | NamedRelativeTime | Next RelativeTimeUnit | Last RelativeTimeUnit
+//! RelativeTime → Duration TimeDirection | NamedRelativeTime | 'next' RelativeTimeUnit | 'last' RelativeTimeUnit
 //! NamedRelativeTime → 'now' | 'today' | 'tomorrow' | 'yesterday' | 'day after tomorrow' | 'the day after tomorrow' | 'day before yesterday' | 'the day before yesterday'
 //! Date → DayOfMonth '/' Month '/' Year
 //! DateTime → Date ('at')? Time
@@ -61,11 +61,9 @@
 //! Year → Number
 //! AmPm → 'AM' | 'PM'
 //! TimeUnit → 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
-//! TimeDirection → 'after' AbsoluteTime | 'before' AbsoluteTime | 'after' NamedRelativeTime | 'before' NamedRelativeTime | 'ago' | 'from now'
+//! TimeDirection → 'after' AbsoluteTime | 'before' AbsoluteTime | 'after' NamedRelativeTime | 'before' NamedRelativeTime | 'before' 'next' RelativeTimeUnit | 'before' 'last' RelativeTimeUnit | 'after' 'next' RelativeTimeUnit | 'after' 'last' RelativeTimeUnit | 'ago' | 'from now'
 //! RelativeTimeUnit → 'week' | 'month' | 'year' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 //! Number → [Any positive integer value]
-//! Next → 'next'
-//! Last → 'last'
 //! ```
 //!
 //! Note that this CFG is slightly more permissive than the actual timelang grammar, particularly
@@ -1183,6 +1181,10 @@ pub enum TimeDirection {
     BeforeAbsolute(AbsoluteTime),
     AfterNamed(NamedRelativeTime),
     BeforeNamed(NamedRelativeTime),
+    BeforeNext(RelativeTimeUnit),
+    BeforeLast(RelativeTimeUnit),
+    AfterNext(RelativeTimeUnit),
+    AfterLast(RelativeTimeUnit),
     Ago,
     FromNow,
 }
@@ -1195,14 +1197,24 @@ impl Parse for TimeDirection {
                 if input.peek(LitInt) {
                     Ok(TimeDirection::AfterAbsolute(input.parse()?))
                 } else {
-                    Ok(TimeDirection::AfterNamed(input.parse()?))
+                    let ident2 = input.fork().parse::<Ident>()?.to_string().to_lowercase();
+                    match ident2.as_str() {
+                        "next" => Ok(TimeDirection::AfterNext(input.parse()?)),
+                        "last" => Ok(TimeDirection::AfterLast(input.parse()?)),
+                        _ => Ok(TimeDirection::AfterNamed(input.parse()?)),
+                    }
                 }
             }
             "before" => {
                 if input.peek(LitInt) {
                     Ok(TimeDirection::BeforeAbsolute(input.parse()?))
                 } else {
-                    Ok(TimeDirection::BeforeNamed(input.parse()?))
+                    let ident2 = input.fork().parse::<Ident>()?.to_string().to_lowercase();
+                    match ident2.as_str() {
+                        "next" => Ok(TimeDirection::BeforeNext(input.parse()?)),
+                        "last" => Ok(TimeDirection::BeforeLast(input.parse()?)),
+                        _ => Ok(TimeDirection::BeforeNamed(input.parse()?)),
+                    }
                 }
             }
             "ago" => Ok(TimeDirection::Ago),
@@ -1230,6 +1242,10 @@ impl Display for TimeDirection {
             TimeDirection::FromNow => f.write_str("from now"),
             TimeDirection::AfterNamed(named) => write!(f, "after {named}"),
             TimeDirection::BeforeNamed(named) => write!(f, "before {named}"),
+            TimeDirection::BeforeNext(unit) => write!(f, "before next {unit}"),
+            TimeDirection::BeforeLast(unit) => write!(f, "before last {unit}"),
+            TimeDirection::AfterNext(unit) => write!(f, "after next {unit}"),
+            TimeDirection::AfterLast(unit) => write!(f, "after last {unit}"),
         }
     }
 }
