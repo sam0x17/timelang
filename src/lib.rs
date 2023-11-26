@@ -21,22 +21,22 @@
 //! ## Examples
 //!
 //! The following are all examples of valid expressions in timelang:
-//! - `now` ([RelativeTime] / [PointInTime::Relative])
-//! - `tomorrow` ([RelativeTime] / [PointInTime::Relative])
-//! - `next tuesday` ([RelativeTime] / [PointInTime::Relative])
-//! - `day after tomorrow` ([RelativeTime] / [PointInTime::Relative])
-//! - `the day before yesterday` ([RelativeTime] / [PointInTime::Relative])
+//! - `now` ([RelativeTime])
+//! - `tomorrow` ([RelativeTime])
+//! - `next tuesday` ([RelativeTime])
+//! - `day after tomorrow` ([RelativeTime])
+//! - `the day before yesterday` ([RelativeTime])
 //! - `20/4/2021` ([Date])
 //! - `11:21 AM` ([Time])
 //! - `15/6/2022 at 3:58 PM` ([DateTime] / [PointInTime::Absolute])
 //! - `2 hours, 37 minutes` ([Duration])
 //! - `5 years, 2 months, 3 weeks and 11 minutes` ([Duration])
-//! - `7 days ago` ([RelativeTime] / [PointInTime::Relative])
-//! - `2 years and 10 minutes from now` ([RelativeTime] / [PointInTime::Relative])
-//! - `5 days, 3 weeks, 6 minutes after 15/4/2025 at 9:27 AM` ([RelativeTime] /
-//!   [PointInTime::Relative])
+//! - `7 days ago` ([RelativeTime])
+//! - `2 years and 10 minutes from now` ([RelativeTime])
+//! - `5 days, 3 weeks, 6 minutes after 15/4/2025 at 9:27 AM` ([RelativeTime])
 //! - `from 1/1/2023 at 14:07 to 15/1/2023` ([TimeRange])
 //! - `from 19/3/2024 at 10:07 AM to 3 months 2 days after 3/9/2027 at 5:27 PM` ([TimeRange])
+//! - `2 days and 14 hours after the day after tomorrow` ([RelativeTime])
 //!
 //!
 //! ## Context Free Grammar
@@ -49,7 +49,8 @@
 //! TimeRange → 'from' PointInTime 'to' PointInTime
 //! Duration → Number TimeUnit ((','? 'and')? Number TimeUnit)*
 //! AbsoluteTime → Date | DateTime
-//! RelativeTime → Duration TimeDirection | Now | Today | Tomorrow | Yesterday | DayAfterTomorrow | DayBeforeYesterday | Next RelativeTimeUnit | Last RelativeTimeUnit
+//! RelativeTime → Duration TimeDirection | NamedRelativeTime | Next RelativeTimeUnit | Last RelativeTimeUnit
+//! NamedRelativeTime → 'now' | 'today' | 'tomorrow' | 'yesterday' | 'day after tomorrow' | 'the day after tomorrow' | 'day before yesterday' | 'the day before yesterday'
 //! Date → DayOfMonth '/' Month '/' Year
 //! DateTime → Date ('at')? Time
 //! Time → Hour ':' Minute AmPm?
@@ -60,15 +61,9 @@
 //! Year → Number
 //! AmPm → 'AM' | 'PM'
 //! TimeUnit → 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
-//! TimeDirection → 'after' AbsoluteTime | 'before' AbsoluteTime | 'ago' | 'from now'
+//! TimeDirection → 'after' AbsoluteTime | 'before' AbsoluteTime | 'after' NamedRelativeTime | 'before' NamedRelativeTime | 'ago' | 'from now'
 //! RelativeTimeUnit → 'week' | 'month' | 'year' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
 //! Number → [Any positive integer value]
-//! Now → 'now'
-//! Today → 'today'
-//! Tomorrow → 'tomorrow'
-//! Yesterday → 'yesterday'
-//! DayAfterTomorrow → 'day after tomorrow' | 'the day after tomorrow'
-//! DayBeforeYesterday → 'day before yesterday' | 'the day before yesterday'
 //! Next → 'next'
 //! Last → 'last'
 //! ```
@@ -321,6 +316,34 @@ mod tests;
 /// assert_eq!(
 ///     "last wednesday".parse::<RelativeTime>().unwrap(),
 ///     RelativeTime::Last(RelativeTimeUnit::Wednesday)
+/// );
+/// assert_eq!(
+///     "3 days before yesterday".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::Directional {
+///         duration: Duration {
+///             minutes: Number(0),
+///             hours: Number(0),
+///             days: Number(3),
+///             weeks: Number(0),
+///             months: Number(0),
+///             years: Number(0)
+///         },
+///         dir: TimeDirection::BeforeNamed(NamedRelativeTime::Yesterday)
+///     }
+/// );
+/// assert_eq!(
+///     "2 days and 14 hours after the day after tomorrow".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::Directional {
+///         duration: Duration {
+///             minutes: Number(0),
+///             hours: Number(14),
+///             days: Number(2),
+///             weeks: Number(0),
+///             months: Number(0),
+///             years: Number(0)
+///         },
+///         dir: TimeDirection::AfterNamed(NamedRelativeTime::DayAfterTomorrow)
+///     }
 /// );
 /// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -658,13 +681,20 @@ impl Display for RelativeTimeUnit {
     }
 }
 
+/// Corresponds with a named relative time, such as "now", "today", "tomorrow", etc.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum NamedRelativeTime {
+    /// Now
     Now,
+    /// Today
     Today,
+    /// Tomorrow
     Tomorrow,
+    /// Yesterday
     Yesterday,
+    /// The day after tomorrow
     DayAfterTomorrow,
+    //// The day before yesterday
     DayBeforeYesterday,
 }
 
@@ -1154,10 +1184,20 @@ impl Parse for TimeDirection {
     fn parse(input: ParseStream) -> Result<Self> {
         let ident1 = input.parse::<Ident>()?;
         match ident1.to_string().to_lowercase().as_str() {
-            "after" => Ok(TimeDirection::AfterAbsolute(input.parse::<AbsoluteTime>()?)),
-            "before" => Ok(TimeDirection::BeforeAbsolute(
-                input.parse::<AbsoluteTime>()?,
-            )),
+            "after" => {
+                if input.peek(LitInt) {
+                    Ok(TimeDirection::AfterAbsolute(input.parse()?))
+                } else {
+                    Ok(TimeDirection::AfterNamed(input.parse()?))
+                }
+            }
+            "before" => {
+                if input.peek(LitInt) {
+                    Ok(TimeDirection::BeforeAbsolute(input.parse()?))
+                } else {
+                    Ok(TimeDirection::BeforeNamed(input.parse()?))
+                }
+            }
             "ago" => Ok(TimeDirection::Ago),
             "from" => {
                 let ident2 = input.parse::<Ident>()?;
