@@ -694,7 +694,7 @@ pub enum NamedRelativeTime {
     Yesterday,
     /// The day after tomorrow
     DayAfterTomorrow,
-    //// The day before yesterday
+    /// The day before yesterday
     DayBeforeYesterday,
 }
 
@@ -764,12 +764,19 @@ impl Display for NamedRelativeTime {
 /// "tomorrow", "now", "next tuesday", "3 days after 2/5/2028 at 7:11 PM" etc..
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum RelativeTime {
+    /// e.g. "3 hours before 18/9/2024 at 4:32 PM", "7 days and 3 hours after tomorrow", "5
+    /// days ago", "9 years from now".
     Directional {
+        /// The [Duration] (how long).
         duration: Duration,
+        /// e.g. "from now", "ago", "after tomorrow".
         dir: TimeDirection,
     },
+    /// e.g. "the day before tomorrow", "now", "tomorrow", "yesterday".
     Named(NamedRelativeTime),
+    /// e.g. "next wednesday", "next friday", "next year".
     Next(RelativeTimeUnit),
+    /// e.g. "last month", "last tuesday", "last year".
     Last(RelativeTimeUnit),
 }
 
