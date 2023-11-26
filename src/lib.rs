@@ -1,3 +1,10 @@
+//! # 🕗 Timelang
+//!
+//! [![Crates.io](https://img.shields.io/crates/v/timelang)](https://crates.io/crates/timelang)
+//! [![docs.rs](https://img.shields.io/docsrs/timelang?label=docs)](https://docs.rs/timelang/latest/timelang/)
+//! [![Build Status](https://img.shields.io/github/actions/workflow/status/sam0x17/timelang/ci.yaml)](https://github.com/sam0x17/timelang/actions/workflows/ci.yaml?query=branch%3Amain)
+//! [![MIT License](https://img.shields.io/github/license/sam0x17/timelang)](https://github.com/sam0x17/timelang/blob/main/LICENSE)
+//!
 //! Timelang is a simple DSL (Domain Specific Language) for representing human-readable
 //! time-related expressions including specific date/times, relative expressions like "3 hours
 //! from now", time ranges, and durations.
@@ -217,7 +224,6 @@ mod tests;
 /// ```
 ///
 /// Relative Time (`after` a specific date):
-///
 /// ```
 /// use timelang::*;
 /// assert_eq!(
