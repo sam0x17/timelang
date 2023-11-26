@@ -1440,6 +1440,7 @@ impl_parse_str!(PointInTime);
 impl_parse_str!(Time);
 impl_parse_str!(DateTime);
 impl_parse_str!(RelativeTimeUnit);
+impl_parse_str!(NamedRelativeTime);
 
 #[cfg(test)]
 macro_rules! assert_impl_all {
@@ -1466,6 +1467,7 @@ fn test_traits() {
         Time,
         DateTime,
         RelativeTimeUnit,
+        NamedRelativeTime,
         TimeExpression : Copy
         + Clone
         + PartialEq
