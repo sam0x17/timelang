@@ -6,6 +6,7 @@ authors = ["sam0x17"]
 license = "MIT"
 description = "A DSL (Domain Specific Language) and grammar for parsing and rendering human-readable date/time and duration values."
 keywords = ["DSL", "time", "parser", "date", "language"]
+repository = "https://github.com/sam0x17/timelang"
 
 [dependencies]
 syn = "2.0.39"
