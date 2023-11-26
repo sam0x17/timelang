@@ -196,7 +196,7 @@ fn test_parse_time_unit() {
 fn test_parse_time_direction() {
     assert_eq!(
         parse2::<TimeDirection>(quote!(after 1/1/2024)).unwrap(),
-        TimeDirection::After(AbsoluteTime::Date(Date(
+        TimeDirection::AfterAbsolute(AbsoluteTime::Date(Date(
             Month::January,
             DayOfMonth(1),
             Year(2024)
@@ -204,7 +204,7 @@ fn test_parse_time_direction() {
     );
     assert_eq!(
         parse2::<TimeDirection>(quote!(before 23/4/2025)).unwrap(),
-        TimeDirection::Before(AbsoluteTime::Date(Date(
+        TimeDirection::BeforeAbsolute(AbsoluteTime::Date(Date(
             Month::April,
             DayOfMonth(23),
             Year(2025)
@@ -275,7 +275,7 @@ fn test_parse_relative_time() {
                 months: 0.into(),
                 years: 0.into(),
             },
-            dir: TimeDirection::After(AbsoluteTime::Date(Date(
+            dir: TimeDirection::AfterAbsolute(AbsoluteTime::Date(Date(
                 Month::April,
                 DayOfMonth(18),
                 Year(2024)
@@ -293,7 +293,7 @@ fn test_parse_relative_time() {
                 months: 0.into(),
                 years: 0.into(),
             },
-            dir: TimeDirection::Before(AbsoluteTime::DateTime(DateTime(
+            dir: TimeDirection::BeforeAbsolute(AbsoluteTime::DateTime(DateTime(
                 Date(Month::March, DayOfMonth(14), Year(2026)),
                 Time(Hour::Hour12(5, AmPm::PM), Minute(4))
             )))
@@ -307,23 +307,23 @@ fn test_parse_relative_time() {
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(yesterday)).unwrap(),
-        RelativeTime::Yesterday
+        RelativeTime::Named(NamedRelativeTime::Yesterday)
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(tomorrow)).unwrap(),
-        RelativeTime::Tomorrow
+        RelativeTime::Named(NamedRelativeTime::Tomorrow)
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(Day Before Yesterday)).unwrap(),
-        RelativeTime::DayBeforeYesterday
+        RelativeTime::Named(NamedRelativeTime::DayBeforeYesterday)
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(day after tomorrow)).unwrap(),
-        RelativeTime::DayAfterTomorrow
+        RelativeTime::Named(NamedRelativeTime::DayAfterTomorrow)
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(now)).unwrap(),
-        RelativeTime::Now
+        RelativeTime::Named(NamedRelativeTime::Now)
     );
     assert_eq!(
         parse2::<RelativeTime>(quote!(tomorrow))

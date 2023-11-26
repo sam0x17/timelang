@@ -240,7 +240,7 @@ mod tests;
 ///             months: Number(0),
 ///             years: Number(0)
 ///         },
-///         dir: TimeDirection::After(AbsoluteTime::Date(Date(
+///         dir: TimeDirection::AfterAbsolute(AbsoluteTime::Date(Date(
 ///             Month::October,
 ///             DayOfMonth(10),
 ///             Year(2022)
@@ -265,7 +265,7 @@ mod tests;
 ///             months: Number(0),
 ///             years: Number(0)
 ///         },
-///         dir: TimeDirection::Before(AbsoluteTime::DateTime(DateTime(
+///         dir: TimeDirection::BeforeAbsolute(AbsoluteTime::DateTime(DateTime(
 ///             Date(Month::December, DayOfMonth(31), Year(2023)),
 ///             Time(Hour::Hour12(11, AmPm::PM), Minute(13))
 ///         )))
@@ -296,23 +296,23 @@ mod tests;
 /// Relative Time (Named):
 /// ```
 /// use timelang::*;
-/// assert_eq!("now".parse::<RelativeTime>().unwrap(), RelativeTime::Now);
+/// assert_eq!("now".parse::<RelativeTime>().unwrap(), RelativeTime::Named(NamedRelativeTime::Now));
 /// assert_eq!(
 ///     "tomorrow".parse::<RelativeTime>().unwrap(),
-///     RelativeTime::Tomorrow
+///     RelativeTime::Named(NamedRelativeTime::Tomorrow)
 /// );
 /// assert_eq!(
 ///     "yesterday".parse::<RelativeTime>().unwrap(),
-///     RelativeTime::Yesterday
+///     RelativeTime::Named(NamedRelativeTime::Yesterday)
 /// );
 /// assert_eq!(
 ///     "day before yesterday".parse::<RelativeTime>().unwrap(),
-///     RelativeTime::DayBeforeYesterday
+///     RelativeTime::Named(NamedRelativeTime::DayBeforeYesterday)
 /// );
 /// // note the optional `the`
 /// assert_eq!(
 ///     "the day after tomorrow".parse::<RelativeTime>().unwrap(),
-///     RelativeTime::DayAfterTomorrow
+///     RelativeTime::Named(NamedRelativeTime::DayAfterTomorrow)
 /// );
 /// assert_eq!(
 ///     "next tuesday".parse::<RelativeTime>().unwrap(),
@@ -658,6 +658,78 @@ impl Display for RelativeTimeUnit {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub enum NamedRelativeTime {
+    Now,
+    Today,
+    Tomorrow,
+    Yesterday,
+    DayAfterTomorrow,
+    DayBeforeYesterday,
+}
+
+impl Parse for NamedRelativeTime {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut ident1 = input.parse::<Ident>()?;
+        if let Some(variant) = match ident1.to_string().to_lowercase().as_str() {
+            "now" => Some(NamedRelativeTime::Now),
+            "today" => Some(NamedRelativeTime::Today),
+            "tomorrow" => Some(NamedRelativeTime::Tomorrow),
+            "yesterday" => Some(NamedRelativeTime::Yesterday),
+            _ => None,
+        } {
+            // single-ident variants
+            return Ok(variant);
+        }
+        if ident1 == "the" && input.peek(Ident) {
+            // optional "the"
+            ident1 = input.parse::<Ident>()?;
+        }
+        let ident2 = input.parse::<Ident>()?;
+        let ident3 = input.parse::<Ident>()?;
+        let ident1_str = ident1.to_string().to_lowercase();
+        let ident2_str = ident2.to_string().to_lowercase();
+        let ident3_str = ident3.to_string().to_lowercase();
+        match (
+            ident1_str.as_str(),
+            ident2_str.as_str(),
+            ident3_str.as_str(),
+        ) {
+            ("day", "after", "tomorrow") => Ok(NamedRelativeTime::DayAfterTomorrow),
+            ("day", "before", "yesterday") => Ok(NamedRelativeTime::DayBeforeYesterday),
+            _ => {
+                if ident1_str != "day" {
+                    return Err(Error::new(
+                        ident1.span(),
+                        "expected one of `day`, `now`, `today`, `tomorrow`, `yesterday`, `the`",
+                    ));
+                }
+                if ident2_str != "before" && ident2_str != "after" {
+                    return Err(Error::new(ident2.span(), "expected `before` or `after`"));
+                }
+                if ident3_str == "tomorrow" {
+                    Err(Error::new(ident3.span(), "expected `yesterday`"))
+                } else {
+                    Err(Error::new(ident3.span(), "expected `tomorrow`"))
+                }
+            }
+        }
+    }
+}
+
+impl Display for NamedRelativeTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NamedRelativeTime::Now => f.write_str("now"),
+            NamedRelativeTime::Today => f.write_str("today"),
+            NamedRelativeTime::Tomorrow => f.write_str("tomorrow"),
+            NamedRelativeTime::Yesterday => f.write_str("yesterday"),
+            NamedRelativeTime::DayAfterTomorrow => f.write_str("the day after tomorrow"),
+            NamedRelativeTime::DayBeforeYesterday => f.write_str("the day before yesterday"),
+        }
+    }
+}
+
 /// Represents a specific point in time offset by some known duration or period, such as
 /// "tomorrow", "now", "next tuesday", "3 days after 2/5/2028 at 7:11 PM" etc..
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -666,12 +738,7 @@ pub enum RelativeTime {
         duration: Duration,
         dir: TimeDirection,
     },
-    Now,
-    Today,
-    Tomorrow,
-    Yesterday,
-    DayAfterTomorrow,
-    DayBeforeYesterday,
+    Named(NamedRelativeTime),
     Next(RelativeTimeUnit),
     Last(RelativeTimeUnit),
 }
@@ -680,47 +747,22 @@ impl Parse for RelativeTime {
     fn parse(input: ParseStream) -> Result<Self> {
         let fork = input.fork();
         if fork.peek(Ident) {
-            let mut ident1 = fork.parse::<Ident>().unwrap().to_string().to_lowercase();
-            if let Some(variant) = match ident1.as_str() {
-                "now" => Some(RelativeTime::Now),
-                "today" => Some(RelativeTime::Today),
-                "tomorrow" => Some(RelativeTime::Tomorrow),
-                "yesterday" => Some(RelativeTime::Yesterday),
-                _ => None,
-            } {
-                // single-ident variants
-                input.parse::<Ident>()?;
-                return Ok(variant);
-            }
-            if ident1 == "next" || ident1 == "last" {
-                // next / last [unit]
-                input.parse::<Ident>()?;
-                let unit = input.parse::<RelativeTimeUnit>()?;
-                if ident1 == "next" {
-                    return Ok(RelativeTime::Next(unit));
-                } else {
-                    return Ok(RelativeTime::Last(unit));
+            let ident1 = fork.parse::<Ident>().unwrap().to_string().to_lowercase();
+            match ident1.as_str() {
+                "next" | "last" => {
+                    // next / last [unit]
+                    input.parse::<Ident>()?;
+                    let unit = input.parse::<RelativeTimeUnit>()?;
+                    if ident1 == "next" {
+                        return Ok(RelativeTime::Next(unit));
+                    } else {
+                        return Ok(RelativeTime::Last(unit));
+                    }
                 }
-            }
-            if ident1 == "the" && fork.peek(Ident) {
-                // optional "the"
-                ident1 = fork.parse::<Ident>().unwrap().to_string().to_lowercase();
-                input.parse::<Ident>()?; // consume `the`
-            }
-            if let (Ok(ident2), Ok(ident3)) = (fork.parse::<Ident>(), fork.parse::<Ident>()) {
-                // 3-word constants
-                let ident2 = ident2.to_string().to_lowercase();
-                let ident3 = ident3.to_string().to_lowercase();
-                if let Some(variant) = match (ident1.as_str(), ident2.as_str(), ident3.as_str()) {
-                    ("day", "after", "tomorrow") => Some(RelativeTime::DayAfterTomorrow),
-                    ("day", "before", "yesterday") => Some(RelativeTime::DayBeforeYesterday),
-                    _ => None,
-                } {
-                    input.parse::<Ident>()?;
-                    input.parse::<Ident>()?;
-                    input.parse::<Ident>()?;
-                    return Ok(variant);
+                "day" | "now" | "today" | "tomorrow" | "yesterday" | "the" => {
+                    return Ok(RelativeTime::Named(input.parse::<NamedRelativeTime>()?))
                 }
+                _ => (),
             }
         }
         let duration = input.parse::<Duration>()?;
@@ -733,14 +775,9 @@ impl Display for RelativeTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RelativeTime::Directional { duration, dir } => write!(f, "{duration} {dir}"),
-            RelativeTime::Now => f.write_str("now"),
-            RelativeTime::Today => f.write_str("today"),
-            RelativeTime::Tomorrow => f.write_str("tomorrow"),
-            RelativeTime::Yesterday => f.write_str("yesterday"),
-            RelativeTime::DayAfterTomorrow => f.write_str("the day after tomorrow"),
-            RelativeTime::DayBeforeYesterday => f.write_str("the day before yesterday"),
             RelativeTime::Next(unit) => write!(f, "next {unit}"),
             RelativeTime::Last(unit) => write!(f, "last {unit}"),
+            RelativeTime::Named(named) => write!(f, "{named}"),
         }
     }
 }
@@ -1105,8 +1142,10 @@ impl Display for TimeUnit {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeDirection {
-    After(AbsoluteTime),
-    Before(AbsoluteTime),
+    AfterAbsolute(AbsoluteTime),
+    BeforeAbsolute(AbsoluteTime),
+    AfterNamed(NamedRelativeTime),
+    BeforeNamed(NamedRelativeTime),
     Ago,
     FromNow,
 }
@@ -1115,8 +1154,10 @@ impl Parse for TimeDirection {
     fn parse(input: ParseStream) -> Result<Self> {
         let ident1 = input.parse::<Ident>()?;
         match ident1.to_string().to_lowercase().as_str() {
-            "after" => Ok(TimeDirection::After(input.parse::<AbsoluteTime>()?)),
-            "before" => Ok(TimeDirection::Before(input.parse::<AbsoluteTime>()?)),
+            "after" => Ok(TimeDirection::AfterAbsolute(input.parse::<AbsoluteTime>()?)),
+            "before" => Ok(TimeDirection::BeforeAbsolute(
+                input.parse::<AbsoluteTime>()?,
+            )),
             "ago" => Ok(TimeDirection::Ago),
             "from" => {
                 let ident2 = input.parse::<Ident>()?;
@@ -1136,10 +1177,12 @@ impl Parse for TimeDirection {
 impl Display for TimeDirection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TimeDirection::After(abs_time) => write!(f, "after {abs_time}"),
-            TimeDirection::Before(abs_time) => write!(f, "before {abs_time}"),
+            TimeDirection::AfterAbsolute(abs_time) => write!(f, "after {abs_time}"),
+            TimeDirection::BeforeAbsolute(abs_time) => write!(f, "before {abs_time}"),
             TimeDirection::Ago => f.write_str("ago"),
             TimeDirection::FromNow => f.write_str("from now"),
+            TimeDirection::AfterNamed(named) => write!(f, "after {named}"),
+            TimeDirection::BeforeNamed(named) => write!(f, "before {named}"),
         }
     }
 }
