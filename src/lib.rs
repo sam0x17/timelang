@@ -343,6 +343,34 @@ mod tests;
 ///         dir: TimeDirection::AfterNamed(NamedRelativeTime::DayAfterTomorrow)
 ///     }
 /// );
+/// assert_eq!(
+///     "2 weeks before last sunday".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::Directional {
+///         duration: Duration {
+///             minutes: Number(0),
+///             hours: Number(0),
+///             days: Number(0),
+///             weeks: Number(2),
+///             months: Number(0),
+///             years: Number(0)
+///         },
+///         dir: TimeDirection::BeforeLast(RelativeTimeUnit::Sunday)
+///     }
+/// );
+/// assert_eq!(
+///     "3 years, 2 weeks after next thursday".parse::<RelativeTime>().unwrap(),
+///     RelativeTime::Directional {
+///         duration: Duration {
+///             minutes: Number(0),
+///             hours: Number(0),
+///             days: Number(0),
+///             weeks: Number(2),
+///             months: Number(0),
+///             years: Number(3)
+///         },
+///         dir: TimeDirection::AfterNext(RelativeTimeUnit::Thursday)
+///     }
+/// );
 /// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub enum TimeExpression {
@@ -656,7 +684,8 @@ impl Parse for RelativeTimeUnit {
             "sunday" => Ok(RelativeTimeUnit::Sunday),
             _ => Err(Error::new(
                 ident.span(),
-                "expected `week`, `month`, or `year`",
+                "expected one of `week`, `month`, `year`, `monday`, `tuesday`, `wednesday`, \
+                `thursday`, `friday`, `saturday` or `sunday`",
             )),
         }
     }
@@ -1199,8 +1228,14 @@ impl Parse for TimeDirection {
                 } else {
                     let ident2 = input.fork().parse::<Ident>()?.to_string().to_lowercase();
                     match ident2.as_str() {
-                        "next" => Ok(TimeDirection::AfterNext(input.parse()?)),
-                        "last" => Ok(TimeDirection::AfterLast(input.parse()?)),
+                        "next" => {
+                            input.parse::<Ident>()?;
+                            Ok(TimeDirection::AfterNext(input.parse()?))
+                        }
+                        "last" => {
+                            input.parse::<Ident>()?;
+                            Ok(TimeDirection::AfterLast(input.parse()?))
+                        }
                         _ => Ok(TimeDirection::AfterNamed(input.parse()?)),
                     }
                 }
@@ -1211,8 +1246,14 @@ impl Parse for TimeDirection {
                 } else {
                     let ident2 = input.fork().parse::<Ident>()?.to_string().to_lowercase();
                     match ident2.as_str() {
-                        "next" => Ok(TimeDirection::BeforeNext(input.parse()?)),
-                        "last" => Ok(TimeDirection::BeforeLast(input.parse()?)),
+                        "next" => {
+                            input.parse::<Ident>()?;
+                            Ok(TimeDirection::BeforeNext(input.parse()?))
+                        }
+                        "last" => {
+                            input.parse::<Ident>()?;
+                            Ok(TimeDirection::BeforeLast(input.parse()?))
+                        }
                         _ => Ok(TimeDirection::BeforeNamed(input.parse()?)),
                     }
                 }
