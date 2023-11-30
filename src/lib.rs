@@ -1445,6 +1445,7 @@ macro_rules! impl_parse_str {
 impl_parse_str!(TimeExpression);
 impl_parse_str!(TimeDirection);
 impl_parse_str!(TimeUnit);
+impl_parse_str!(TimeRange);
 impl_parse_str!(AmPm);
 impl_parse_str!(DayOfMonth);
 impl_parse_str!(Minute);
@@ -1485,6 +1486,7 @@ fn test_traits() {
         DateTime,
         RelativeTimeUnit,
         NamedRelativeTime,
+        TimeRange,
         TimeExpression : Copy
         + Clone
         + PartialEq
