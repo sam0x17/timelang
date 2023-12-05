@@ -405,7 +405,11 @@ impl Parse for TimeExpression {
             return Err(Error::new(input.span(), "expected [number] or [keyword]"));
         }
         if input.peek(Ident) {
-            return Ok(TimeExpression::Range(input.parse()?));
+            let ident = input.fork().parse::<Ident>()?;
+            if ident.to_string().to_lowercase().as_str() == "from" {
+                return Ok(TimeExpression::Range(input.parse()?));
+            }
+            return Ok(TimeExpression::Specific(input.parse()?));
         }
         if input.peek(LitInt) && input.peek2(Token![/]) {
             // case 2 for PointInTime

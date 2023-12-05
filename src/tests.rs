@@ -498,4 +498,16 @@ fn test_parse_time_expressions() {
             .to_string(),
         "3 hours"
     );
+    assert_eq!(
+        parse2::<TimeExpression>(quote!(tomorrow))
+            .unwrap()
+            .to_string(),
+        "tomorrow"
+    );
+    assert_eq!(
+        parse2::<TimeExpression>(quote!(3 days before yesterday))
+            .unwrap()
+            .to_string(),
+        "3 days before yesterday"
+    );
 }
